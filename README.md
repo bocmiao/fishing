@@ -1,5 +1,9 @@
-# fishing
+# 半亩方塘（暂定名）
 
-钓鱼养鱼休闲模拟游戏（后期扩展种田）。
+国风治愈的钓鱼养鱼游戏，PC / Steam 单机，后期扩展种田。
 
-- 策划构思：[docs/game-design.md](docs/game-design.md)
+## 文档
+
+- [策划大纲](docs/game-design.md)：玩什么，包括世界观、系统设计和内容规模
+- [技术方案与分工](docs/production-plan.md)：怎么做、谁来做、里程碑
+- [美术与音频指南](docs/art-audio-guide.md)：可直接交给图像 AI / 音乐 AI 的风格说明、资源清单和提示词
