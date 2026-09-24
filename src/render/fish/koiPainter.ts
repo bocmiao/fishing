@@ -1,15 +1,18 @@
 import { clamp01, fbm, smoothstep, valueNoise } from '../noise';
-import type { KoiLook } from './koiLook';
+import type { FishShape, KoiLook } from './koiLook';
 
 /**
  * 按 KoiLook 逐像素画出一条俯视的鱼（含鳍、花纹、鳞纹、明暗、眼睛）。
- * 纹理横向是身体方向：x = 0 是吻端，x = FISH_TEX_W 是尾鳍末端；纵向中线是脊背。
+ * 纹理横向是身体方向：x = 0 是吻端，x = 宽度 是尾鳍末端；纵向中线是脊背。
+ * 锦鲤和野生鱼（鲫鱼、马口鱼、泥鳅……）都用它画，区别在体型和配色。
  */
 export const FISH_TEX_W = 256;
 export const FISH_TEX_H = 112;
 
-/** 俯视的身体半宽轮廓（占全长的比例），u 从吻端到尾柄 */
-const PROFILE: readonly (readonly [number, number])[] = [
+type Profile = readonly (readonly [number, number])[];
+
+/** 鲤形鱼的俯视身体半宽（占全长的比例），u 从吻端到尾柄，后面接尾鳍 */
+const CARP_PROFILE: Profile = [
   [0.0, 0.0],
   [0.012, 0.036],
   [0.035, 0.062],
@@ -25,14 +28,29 @@ const PROFILE: readonly (readonly [number, number])[] = [
   [0.82, 0.0],
 ];
 
-function sampleProfile(u: number): number {
-  if (u <= 0 || u >= 0.82) return 0;
+/** 鳗形（泥鳅、黄鳝）：细长、粗细均匀、尾巴收成一个尖 */
+const EEL_PROFILE: Profile = [
+  [0.0, 0.0],
+  [0.008, 0.02],
+  [0.03, 0.033],
+  [0.07, 0.04],
+  [0.25, 0.043],
+  [0.6, 0.04],
+  [0.8, 0.032],
+  [0.92, 0.019],
+  [0.985, 0.006],
+  [1.0, 0.0],
+];
+
+function sampleProfile(profile: Profile, u: number): number {
+  const end = profile[profile.length - 1]![0];
+  if (u <= 0 || u >= end) return 0;
   let i = 0;
-  while (i < PROFILE.length - 2 && PROFILE[i + 1]![0] < u) i++;
-  const p0 = PROFILE[Math.max(0, i - 1)]!;
-  const p1 = PROFILE[i]!;
-  const p2 = PROFILE[i + 1]!;
-  const p3 = PROFILE[Math.min(PROFILE.length - 1, i + 2)]!;
+  while (i < profile.length - 2 && profile[i + 1]![0] < u) i++;
+  const p0 = profile[Math.max(0, i - 1)]!;
+  const p1 = profile[i]!;
+  const p2 = profile[i + 1]!;
+  const p3 = profile[Math.min(profile.length - 1, i + 2)]!;
   const t = (u - p1[0]) / (p2[0] - p1[0]);
   // Catmull-Rom（按非均匀间距换算切线）
   const m1 = ((p2[1] - p0[1]) / (p2[0] - p0[0] || 1)) * (p2[0] - p1[0]);
@@ -51,13 +69,15 @@ function sampleProfile(u: number): number {
 export function buildBodyTable(
   plump: number,
   width = FISH_TEX_W,
+  shape: FishShape = 'carp',
 ): { hw: Float32Array; slope: Float32Array } {
+  const profile = shape === 'eel' ? EEL_PROFILE : CARP_PROFILE;
   const hw = new Float32Array(width);
   const slope = new Float32Array(width);
   for (let x = 0; x < width; x++) {
     const u = (x + 0.5) / width;
     const bell = smoothstep(0.03, 0.2, u) * (1 - smoothstep(0.55, 0.78, u));
-    hw[x] = sampleProfile(u) * width * (1 + (plump - 1) * bell);
+    hw[x] = sampleProfile(profile, u) * width * (1 + (plump - 1) * bell);
   }
   for (let x = 0; x < width; x++) {
     const a = hw[Math.max(0, x - 1)]!;
@@ -106,8 +126,8 @@ function finShape(
 }
 
 /**
- * 把一条鱼画进 RGBA 数据（非预乘），写入 (ox, oy) 开始的 FISH_TEX_W × FISH_TEX_H 区域。
- * stride 是整张图的宽度（像素）。
+ * 把一条鱼画进 RGBA 数据（非预乘），写入 (ox, oy) 开始的
+ * (FISH_TEX_W × scale) × (FISH_TEX_H × scale) 区域。stride 是整张图的宽度（像素）。
  */
 export function paintKoi(
   look: KoiLook,
@@ -115,28 +135,33 @@ export function paintKoi(
   stride: number,
   ox: number,
   oy: number,
+  scale = 1,
 ): void {
-  const W = FISH_TEX_W;
-  const H = FISH_TEX_H;
+  const W = Math.round(FISH_TEX_W * scale);
+  const H = Math.round(FISH_TEX_H * scale);
   const L = W;
   const cy = H / 2;
-  const { hw, slope } = buildBodyTable(look.plump);
+  const shape = look.shape ?? 'carp';
+  const eel = shape === 'eel';
+  const { hw, slope } = buildBodyTable(look.plump, W, shape);
   const fl = look.finLength;
   const [br, bg, bb] = look.base;
   const [fr, fg, fb] = look.fin;
   const [sr, sg, sb] = look.scaleTint;
+  const back = look.back;
   const seed = look.seed;
   const px: Px = { r: 0, g: 0, b: 0, a: 0 };
+  const noiseScale = 1 / scale;
 
   // 胸鳍：在头后方，向后外侧张开
-  const pecU = 0.2;
+  const pecU = eel ? 0.08 : 0.2;
   const pecHw = hw[Math.floor(pecU * W)]!;
-  const pecA = 0.062 * fl * L;
-  const pecB = 0.031 * fl * L;
+  const pecA = (eel ? 0.03 : 0.062) * fl * L;
+  const pecB = (eel ? 0.015 : 0.031) * fl * L;
   const pecAng = 0.62;
-  const pecCx = (pecU + 0.05 * fl) * L;
-  const pecOff = pecHw + 0.028 * fl * L;
-  // 腹鳍
+  const pecCx = (pecU + (eel ? 0.02 : 0.05) * fl) * L;
+  const pecOff = pecHw + (eel ? 0.012 : 0.028) * fl * L;
+  // 腹鳍（鳗形没有）
   const pelU = 0.47;
   const pelHw = hw[Math.floor(pelU * W)]!;
   const pelA = 0.034 * fl * L;
@@ -145,16 +170,17 @@ export function paintKoi(
   const pelCx = (pelU + 0.025 * fl) * L;
   const pelOff = pelHw + 0.01 * L;
   // 眼睛
-  const eyeU = 0.066;
+  const eyeU = eel ? 0.03 : 0.066;
   const eyeX = eyeU * L;
   const eyeHw = hw[Math.floor(eyeU * W)]!;
-  const eyeR = 0.0115 * L;
-  const eyeY = eyeHw * 0.84;
-  // 尾鳍
+  const eyeR = (eel ? 0.007 : 0.0115) * L;
+  const eyeY = eyeHw * 0.8;
+  // 尾鳍（鳗形没有分叉的尾鳍）
   const tailStart = 0.72;
   const tailMaxHw = L * (0.024 + 0.13 * Math.sqrt(fl));
 
   const scaleSize = (look.scales === 'doitsu' ? 0.055 : 0.03) * L;
+  const bodyEnd = eel ? 1 : 0.78;
 
   for (let y = 0; y < H; y++) {
     const vpx = y + 0.5 - cy;
@@ -168,7 +194,7 @@ export function paintKoi(
       px.a = 0;
 
       // ---- 身体后面的鳍：腹鳍、胸鳍、尾鳍 ----
-      if (u > pelU - 0.03 && u < pelU + 0.12) {
+      if (!eel && u > pelU - 0.03 && u < pelU + 0.12) {
         const [a, t] = finShape(
           x,
           vpx,
@@ -181,7 +207,7 @@ export function paintKoi(
         );
         if (a > 0) over(px, fr, fg, fb, a * look.finAlpha * 0.7 * (1 - 0.4 * t));
       }
-      if (u > pecU - 0.04 && u < pecU + 0.2) {
+      if (u > pecU - 0.04 && u < pecU + 0.2 && look.finAlpha > 0.05) {
         const [a, t] = finShape(
           x,
           vpx,
@@ -194,7 +220,7 @@ export function paintKoi(
         );
         if (a > 0) over(px, fr, fg, fb, a * look.finAlpha * (1 - 0.45 * t));
       }
-      if (u > tailStart) {
+      if (!eel && u > tailStart) {
         const s = clamp01((u - tailStart) / (1 - tailStart));
         const tailHw = L * 0.024 + (tailMaxHw - L * 0.024) * Math.pow(s, 0.85);
         const fork = 1 - 0.1 * (1 - Math.pow(Math.min(1, av / tailMaxHw), 1.4));
@@ -205,6 +231,12 @@ export function paintKoi(
           const rays = 0.8 + 0.2 * Math.cos(phi * 28);
           over(px, fr, fg, fb, aLat * aEnd * rays * look.finAlpha * (1 - 0.4 * s));
         }
+      }
+      if (eel && u > 0.55 && look.finAlpha > 0.05) {
+        // 鳗形尾部一圈很薄的鳍褶
+        const h = hw[x]! + 0.012 * L * smoothstep(0.55, 0.8, u);
+        const a = clamp01(h - av + 0.5) * look.finAlpha * 0.8;
+        if (a > 0) over(px, fr, fg, fb, a);
       }
 
       // ---- 身体 ----
@@ -219,8 +251,16 @@ export function paintKoi(
           let g = bg;
           let b = bb;
 
+          // 背部颜色（野生鱼背深腹浅，俯视主要看到背）
+          if (back) {
+            const m = 1 - smoothstep(0.1, 0.95, t);
+            r += (back[0] - r) * m;
+            g += (back[1] - g) * m;
+            b += (back[2] - b) * m;
+          }
+
           // 鳞纹
-          if (u > 0.12 && u < 0.78 && look.scaleStrength > 0) {
+          if (u > 0.12 && u < bodyEnd && look.scaleStrength > 0) {
             const sy = vpx / scaleSize;
             const row = Math.floor(sy);
             const sx = x / scaleSize + (row & 1) * 0.5;
@@ -259,7 +299,7 @@ export function paintKoi(
                 (fbm(u * 20, vn * 3.2 + li * 3.1, seed + li * 101, 2) - 0.5) *
                 layer.edgeNoise *
                 0.7;
-              const m = smoothstep(-0.04, 0.04, field);
+              const m = smoothstep(-0.04, 0.04, field) * (layer.opacity ?? 1);
               if (m > 0) {
                 r += (layer.color[0] - r) * m;
                 g += (layer.color[1] - g) * m;
@@ -280,9 +320,10 @@ export function paintKoi(
           }
 
           // 背鳍：俯视时是脊背中线上一道细细的深色
-          if (u > 0.3 && u < 0.64 && av < 2.4) {
+          const dorsalW = 2.4 * scale;
+          if (!eel && u > 0.3 && u < 0.64 && av < dorsalW) {
             const bump = smoothstep(0.3, 0.36, u) * (1 - smoothstep(0.58, 0.64, u));
-            const m = 0.2 * (1 - av / 2.4) * bump;
+            const m = 0.2 * (1 - av / dorsalW) * bump;
             r *= 1 - m;
             g *= 1 - m;
             b *= 1 - m;
@@ -297,7 +338,9 @@ export function paintKoi(
           // 金属光泽
           if (look.metallic > 0) {
             const sheen =
-              look.metallic * (0.15 * Math.pow(1 - t, 2.5) + 0.07 * valueNoise(x / 3, y / 3, seed));
+              look.metallic *
+              (0.15 * Math.pow(1 - t, 2.5) +
+                0.07 * valueNoise((x / 3) * noiseScale, (y / 3) * noiseScale, seed));
             r += (1 - r) * sheen;
             g += (1 - g) * sheen;
             b += (1 - b) * sheen;
@@ -332,40 +375,44 @@ export function paintKoi(
 }
 
 /**
- * 通用的鱼影纹理：鱼的剪影，边缘很柔和。所有鱼共用一张。
+ * 鱼影纹理：鱼的剪影，边缘很柔和。同一种体型的鱼共用一张。
  */
 export function paintFishShadow(
   data: Uint8ClampedArray,
   stride: number,
   ox: number,
   oy: number,
+  shape: FishShape = 'carp',
 ): void {
   const W = FISH_TEX_W;
   const H = FISH_TEX_H;
   const L = W;
   const cy = H / 2;
-  const { hw } = buildBodyTable(1);
-  const soft = 5;
+  const { hw } = buildBodyTable(shape === 'slender' ? 0.8 : 1, W, shape);
+  const soft = shape === 'eel' ? 3.5 : 5;
   for (let y = 0; y < H; y++) {
     const av = Math.abs(y + 0.5 - cy);
     for (let x = 0; x < W; x++) {
       const u = (x + 0.5) / L;
       const h = hw[x]!;
       let a = h > 0 ? smoothstep(-soft, soft, h - av) : 0;
-      // 胸鳍和尾鳍的影子淡一些
-      if (u > 0.18 && u < 0.36) {
-        const fin = smoothstep(
-          -soft,
-          soft,
-          h + 0.07 * L * Math.sin(((u - 0.18) / 0.18) * Math.PI) - av,
-        );
-        a = Math.max(a, fin * 0.45);
-      }
-      if (u > 0.72) {
-        const s = (u - 0.72) / 0.28;
-        const tailHw = L * (0.024 + 0.13 * Math.pow(s, 0.85));
-        const fin = smoothstep(-soft, soft, tailHw - av) * smoothstep(-soft, soft, (0.98 - u) * L);
-        a = Math.max(a, fin * 0.4);
+      if (shape !== 'eel') {
+        // 胸鳍和尾鳍的影子淡一些
+        if (u > 0.18 && u < 0.36) {
+          const fin = smoothstep(
+            -soft,
+            soft,
+            h + 0.07 * L * Math.sin(((u - 0.18) / 0.18) * Math.PI) - av,
+          );
+          a = Math.max(a, fin * 0.45);
+        }
+        if (u > 0.72) {
+          const s = (u - 0.72) / 0.28;
+          const tailHw = L * (0.024 + 0.13 * Math.pow(s, 0.85));
+          const fin =
+            smoothstep(-soft, soft, tailHw - av) * smoothstep(-soft, soft, (0.98 - u) * L);
+          a = Math.max(a, fin * 0.4);
+        }
       }
       const i = ((oy + y) * stride + (ox + x)) * 4;
       data[i] = 0;

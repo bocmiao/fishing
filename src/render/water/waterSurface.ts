@@ -18,6 +18,8 @@ uniform float uTime;
 uniform float uCaustic;
 uniform vec4 uRipples[${MAX_SHADER_RIPPLES}];
 uniform float uRippleCount;
+uniform vec2 uFlow;
+uniform float uDim;
 ${NOISE_GLSL}
 
 // Voronoi：到最近两个点的距离差，差值越小越靠近格子边界
@@ -47,11 +49,13 @@ float voronoiEdge(vec2 p, float t) {
 void main() {
   vec2 px = vUV * uSize;
   float t = uTime;
+  // 有水流时，折射和焦散跟着水流漂
+  vec2 fp = px - uFlow * t;
 
   // 水面缓慢晃动造成的折射
   vec2 wob = vec2(
-    vnoise(px / 190.0 + vec2(t * 0.11, 0.0)),
-    vnoise(px / 190.0 + vec2(3.7, -t * 0.09))
+    vnoise(fp / 190.0 + vec2(t * 0.11, 0.0)),
+    vnoise(fp / 190.0 + vec2(3.7, -t * 0.09))
   ) - 0.5;
   vec2 disp = wob * 3.2;
 
@@ -73,7 +77,7 @@ void main() {
   vec3 col = texture(uBed, clamp((px + disp) / uSize, vec2(0.0), vec2(1.0))).rgb;
 
   // 焦散：扭曲得很厉害的 Voronoi 边界，稀疏、柔和、成片出现又消失
-  vec2 cp = px / 340.0;
+  vec2 cp = fp / 340.0;
   cp += 0.75 * vec2(fbm3(cp * 0.55 + vec2(t * 0.03, 0.0)), fbm3(cp * 0.55 + vec2(7.3, -t * 0.025)));
   float e1 = voronoiEdge(cp, t * 0.22);
   float e2 = voronoiEdge(cp * 2.1 + 5.3, t * 0.3);
@@ -84,6 +88,7 @@ void main() {
   col += caustic * uCaustic * vec3(0.88, 0.98, 0.92);
 
   col += rippleLight * 0.04;
+  col *= 1.0 - uDim;
   finalColor = vec4(col, 1.0);
 }
 `;
@@ -111,6 +116,8 @@ export class WaterSurface {
         uCaustic: { value: causticStrength, type: 'f32' },
         uRipples: { value: this.rippleData, type: 'vec4<f32>', size: MAX_SHADER_RIPPLES },
         uRippleCount: { value: 0, type: 'f32' },
+        uFlow: { value: new Float32Array([0, 0]), type: 'vec2<f32>' },
+        uDim: { value: 0, type: 'f32' },
       },
     });
   }
@@ -118,6 +125,21 @@ export class WaterSurface {
   private get uniforms(): Record<string, unknown> {
     return (this.mesh.shader!.resources.waterUniforms as { uniforms: Record<string, unknown> })
       .uniforms;
+  }
+
+  /** 水流方向和速度（像素 / 秒） */
+  setFlow(x: number, y: number): void {
+    (this.uniforms.uFlow as Float32Array).set([x, y]);
+  }
+
+  /** 整体压暗（阴雨天） */
+  setDim(amount: number): void {
+    this.uniforms.uDim = amount;
+  }
+
+  /** 焦散强度（阴雨天减弱） */
+  setCaustic(strength: number): void {
+    this.uniforms.uCaustic = strength;
   }
 
   setBed(bed: Texture): void {

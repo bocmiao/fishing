@@ -1,5 +1,8 @@
 import { Application, Container } from 'pixi.js';
+import { getGameData } from '../sim/data/gameData';
 import { Rng } from '../sim/rng/rng';
+import { GameState } from '../sim/state';
+import { CommandBus } from './commands';
 import type { LaunchParams } from './params';
 import type { Scene, SceneContext, ViewSize } from './scene';
 import type { Store } from './store';
@@ -12,14 +15,20 @@ const MAX_ASPECT = 21 / 9;
 /** 单帧最长步长（秒），防止切回窗口时一下跳太远 */
 const MAX_STEP = 1 / 20;
 
-export type SceneFactory = (ctx: SceneContext) => Scene;
+/** 按名字创建画面 */
+export type SceneFactory = (name: string, ctx: SceneContext) => Scene;
 
 export class Game {
   readonly app = new Application();
+  readonly commands = new CommandBus();
+  readonly state: GameState;
   /** 所有画面都放在这里，按窗口缩放 */
   private readonly world = new Container();
   private scene: Scene | null = null;
+  private sceneName = '';
+  private factory!: SceneFactory;
   private ctx!: SceneContext;
+  private switching = false;
   private fpsTimer = 0;
   private frameCount = 0;
   private updateMsAccum = 0;
@@ -27,9 +36,12 @@ export class Game {
   constructor(
     private readonly params: LaunchParams,
     private readonly ui: Store<UiState>,
-  ) {}
+  ) {
+    this.state = new GameState(getGameData(), params.seed);
+  }
 
   async start(mount: HTMLElement, factory: SceneFactory): Promise<void> {
+    this.factory = factory;
     await this.app.init({
       background: '#1c3a3a',
       antialias: true,
@@ -41,6 +53,8 @@ export class Game {
       preserveDrawingBuffer: this.params.shot,
     });
     mount.appendChild(this.app.canvas);
+    // 右键用来收竿，不弹出浏览器菜单
+    this.app.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     this.app.stage.addChild(this.world);
     this.app.stage.eventMode = 'static';
 
@@ -50,14 +64,19 @@ export class Game {
       rng: new Rng(this.params.seed),
       ui: this.ui,
       view: this.layout(),
+      state: this.state,
+      commands: this.commands,
     };
     this.app.renderer.on('resize', () => {
       const view = this.layout();
       this.ctx.view = view;
       this.scene?.resize(view);
     });
+    this.commands.on((cmd) => {
+      if (cmd.type === 'goto' && cmd.scene !== this.sceneName) void this.goto(cmd.scene);
+    });
 
-    await this.switchScene(factory);
+    await this.goto(this.params.scene, this.params.warmup);
 
     if (this.params.shot) {
       // 截图模式：不自动走帧，由截图脚本调用 step() 精确推进
@@ -69,19 +88,30 @@ export class Game {
     exposeDebugHandle(this);
   }
 
-  async switchScene(factory: SceneFactory): Promise<void> {
-    if (this.scene) {
-      this.world.removeChild(this.scene.root);
-      this.scene.exit();
+  /** 切换到某个画面；warmup 为进入前预先模拟的秒数 */
+  async goto(name: string, warmup = 2): Promise<void> {
+    if (this.switching) return;
+    this.switching = true;
+    try {
+      const old = this.scene;
+      this.scene = null;
+      if (old) {
+        this.world.removeChild(old.root);
+        old.exit();
+      }
+      const scene = this.factory(name, this.ctx);
+      this.sceneName = name;
+      await scene.enter();
+      scene.resize(this.ctx.view);
+      this.world.addChild(scene.root);
+      this.scene = scene;
+      // 预先模拟一段时间，让画面进入自然状态
+      const warmupSteps = Math.round(warmup * 30);
+      for (let i = 0; i < warmupSteps; i++) scene.update(1 / 30);
+      this.ui.set({ scene: name });
+    } finally {
+      this.switching = false;
     }
-    const scene = factory(this.ctx);
-    this.scene = scene;
-    await scene.enter();
-    scene.resize(this.ctx.view);
-    this.world.addChild(scene.root);
-    // 预先模拟一段时间，让画面进入自然状态
-    const warmupSteps = Math.round(this.params.warmup * 30);
-    for (let i = 0; i < warmupSteps; i++) scene.update(1 / 30);
   }
 
   /** 按固定步长推进若干秒（截图和测试用） */
@@ -144,11 +174,15 @@ function exposeDebugHandle(game: Game): void {
     ready: true,
     game,
     step: (seconds: number) => game.step(seconds),
+    send: (cmd: Parameters<CommandBus['send']>[0]) => game.commands.send(cmd),
     get scene() {
       return game.currentScene;
     },
     get view() {
       return game.view;
+    },
+    get state() {
+      return game.state;
     },
     /** 逻辑坐标 → 页面上的 CSS 像素坐标 */
     toScreen: (x: number, y: number) => game.toScreen(x, y),

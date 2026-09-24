@@ -1,5 +1,7 @@
 import { Container, type Application } from 'pixi.js';
 import type { Rng } from '../sim/rng/rng';
+import type { GameState } from '../sim/state';
+import type { CommandBus } from './commands';
 import type { LaunchParams } from './params';
 import type { Store } from './store';
 import type { UiState } from '../ui/uiState';
@@ -16,6 +18,9 @@ export interface SceneContext {
   rng: Rng;
   ui: Store<UiState>;
   view: ViewSize;
+  /** 跨画面共享的游戏状态 */
+  state: GameState;
+  commands: CommandBus;
 }
 
 /**

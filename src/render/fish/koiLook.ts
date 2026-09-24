@@ -22,9 +22,13 @@ export interface PatchLayer {
   blobs: PatchBlob[];
   /** 斑块边缘的波动程度 */
   edgeNoise: number;
+  /** 不透明度，默认 1 */
+  opacity?: number;
 }
 
 export type ScaleStyle = 'normal' | 'doitsu' | 'reticulated';
+/** 体型：鲤形（锦鲤、鲫鱼）、细长（马口鱼、白条）、鳗形（泥鳅、黄鳝） */
+export type FishShape = 'carp' | 'slender' | 'eel';
 
 export interface KoiLook {
   /** 品种名，例如"红白" */
@@ -49,6 +53,10 @@ export interface KoiLook {
   finLength: number;
   /** 花纹边缘噪声的种子 */
   seed: number;
+  /** 体型，默认鲤形 */
+  shape?: FishShape;
+  /** 背部颜色（野生鱼背深腹浅） */
+  back?: Rgb;
 }
 
 const WHITE = hexToRgb(0xf4f0e6);

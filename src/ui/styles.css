@@ -5,6 +5,9 @@
   --ink: #2a2e2b;
   --ink-soft: #5b625d;
   --line: #d9ccb2;
+  --vermilion: #c9432f;
+  --gold: #c98f2e;
+  --sweet: #7fa37a;
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
 }
 
@@ -29,6 +32,13 @@ body {
   user-select: none;
 }
 
+#ui button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
 .ui-root {
   position: absolute;
   inset: 0;
@@ -40,6 +50,7 @@ body {
 
 .ui-root.is-watching > *:not(.watch-hint) {
   opacity: 0;
+  pointer-events: none !important;
 }
 
 .card {
@@ -48,6 +59,8 @@ body {
   border-radius: 10px;
   box-shadow: 0 6px 18px rgba(15, 35, 29, 0.18);
 }
+
+/* ---------------------------------------------------------------- 标题牌 */
 
 .plaque {
   position: absolute;
@@ -66,12 +79,35 @@ body {
   letter-spacing: 0.3em;
 }
 
-.plaque-sub {
-  margin-top: 2px;
-  font-size: 12px;
+.plaque-pos {
+  margin-left: 0.4em;
+  font-size: 15px;
+  font-weight: 400;
   letter-spacing: 0.15em;
   color: var(--ink-soft);
 }
+
+.plaque-sub {
+  margin-top: 3px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+
+.nav-button {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  padding: 9px 16px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.nav-button:hover {
+  background: #fff8ec;
+}
+
+/* ---------------------------------------------------------------- 提示 */
 
 .hint {
   position: absolute;
@@ -85,15 +121,510 @@ body {
   white-space: nowrap;
 }
 
+.fishing-hint {
+  bottom: 214px;
+}
+
+.sense {
+  position: absolute;
+  left: 50%;
+  bottom: 256px;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: #f5ebdb;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  animation: sense-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes sense-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 92px;
+  transform: translate(-50%, -8px);
+  padding: 9px 22px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  opacity: 0;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toast.tone-good {
+  border-color: #c9b27a;
+}
+
+.toast.tone-bad {
+  color: #7a2d22;
+}
+
+/* ---------------------------------------------------------------- 钓位、饵料、鱼护 */
+
+.tabs {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 7px 18px;
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(15, 35, 29, 0.15);
+}
+
+.tab.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper) !important;
+}
+
+.baits {
+  position: absolute;
+  left: 32px;
+  bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  pointer-events: auto;
+}
+
+.baits-label,
+.keepnet-label {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+  margin: 0 6px 0 4px;
+}
+
+.bait {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+
+.bait:hover {
+  background: #fff8ec;
+}
+
+.bait.is-active {
+  border-color: var(--accent);
+  background: #fffaf0;
+}
+
+.bait-key {
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink-soft);
+}
+
+.keepnet {
+  position: absolute;
+  right: 32px;
+  bottom: 30px;
+  display: flex;
+  align-items: baseline;
+  padding: 9px 16px;
+}
+
+.keepnet-count {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.keepnet-count span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------- 张力条 */
+
+/* 张力条放在岸上阿喵的右边，不挡住水面（鱼最后是从这里拉上岸的） */
+.meter {
+  position: absolute;
+  left: calc(50% + 70px);
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meter-main {
+  width: 400px;
+  padding: 10px 16px 12px;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(15, 35, 29, 0.2);
+}
+
+.meter.is-danger .meter-main {
+  animation: shake 0.12s linear infinite;
+  border-color: var(--vermilion);
+}
+
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.meter-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.meter.is-danger .meter-state {
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+.meter.is-slack .meter-state {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.meter-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #d8d2c2;
+}
+
+.zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.zone.slack {
+  background: #cdbf9c;
+}
+
+.zone.low {
+  background: #d9d4c4;
+}
+
+.zone.sweet {
+  background: var(--sweet);
+}
+
+.zone.warn {
+  background: #d99a52;
+}
+
+.zone.snap {
+  background: var(--vermilion);
+}
+
+.meter-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(245, 235, 219, 0.9);
+}
+
+.stamina {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--ink-soft);
+}
+
+.stamina-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: #ddd6c6;
+  overflow: hidden;
+}
+
+.stamina-bar div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
+.meter-side {
+  width: 130px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #f5ebdb;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
+}
+
+.meter-side span {
+  animation: sense-pulse 0.6s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------- 上鱼卡片 */
+
+.catch-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 26, 22, 0.35);
+  pointer-events: auto;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.catch {
+  width: 520px;
+  padding: 22px 30px 24px;
+  text-align: center;
+  animation: pop-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+
+.catch-badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.badge {
+  padding: 3px 10px;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  border-radius: 999px;
+  color: var(--paper);
+}
+
+.badge.new {
+  background: var(--accent);
+}
+
+.badge.record {
+  background: var(--gold);
+}
+
+.badge.trophy {
+  background: var(--vermilion);
+}
+
+.catch-image {
+  display: block;
+  width: 420px;
+  margin: 6px auto 0;
+  filter: drop-shadow(8px 10px 8px rgba(40, 50, 40, 0.25));
+}
+
+.catch-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+
+.catch-title h2 {
+  margin: 4px 0 0;
+  font-size: 30px;
+  letter-spacing: 0.3em;
+}
+
+.rarity {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+}
+
+.catch-stats {
+  margin-top: 6px;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
+.catch-note {
+  margin: 14px 0 18px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.8;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  background: var(--card);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.catch-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.catch-actions button {
+  min-width: 150px;
+  padding: 10px 18px;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fffaf0;
+}
+
+.catch-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper) !important;
+}
+
+.catch-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+kbd {
+  margin-left: 8px;
+  padding: 0 5px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.6;
+}
+
+/* ---------------------------------------------------------------- 调试 */
+
 .debug {
   position: absolute;
-  top: 28px;
+  top: 84px;
   right: 32px;
   padding: 10px 14px;
   font-size: 12px;
   line-height: 1.7;
   font-family: ui-monospace, monospace;
 }
+
+.debug-tip {
+  color: var(--ink-soft);
+}
+
+.tuning {
+  position: absolute;
+  top: 84px;
+  right: 32px;
+  width: 360px;
+  padding: 14px 16px;
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.tuning-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  margin-bottom: 10px;
+}
+
+.tuning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tuning-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fffaf0;
+}
+
+.tuning-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.tuning-row input {
+  pointer-events: auto;
+  accent-color: var(--accent);
+}
+
+.tuning-row em {
+  font-style: normal;
+  font-family: ui-monospace, monospace;
+  text-align: right;
+}
+
+.tuning-tip {
+  margin-top: 8px;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------- 观鱼模式 */
 
 .watch-hint {
   position: absolute;

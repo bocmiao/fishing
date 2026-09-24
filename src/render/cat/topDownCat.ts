@@ -124,6 +124,8 @@ export class TopDownCat {
   private readonly earR = new Container();
   private readonly pawL = new Container();
   private readonly pawR = new Container();
+  /** 两只爪子（握竿时一起转向瞄准方向） */
+  private readonly hands = new Container();
 
   private time = 0;
   private lookAngle = 0;
@@ -134,6 +136,14 @@ export class TopDownCat {
   private pawReach = 0;
   private tailExcite = 0;
   private whiskerTwitch = 0;
+  private aim = 0;
+  private aimTarget = 0;
+  private swing = 0;
+  private strikeT = 0;
+  private lean = 0;
+  private leanTarget = 0;
+  private mood: 'neutral' | 'happy' | 'sad' = 'neutral';
+  private moodTime = 0;
 
   constructor(private readonly rng: Rng) {
     this.shadow.ellipse(8, 22, 60, 54).fill({ color: 0x1d160f, alpha: 0.22 });
@@ -169,7 +179,8 @@ export class TopDownCat {
     }
     this.head.addChild(this.whiskers, hatShadow, hat, this.earL, this.earR);
 
-    this.root.addChild(this.shadow, this.tail, this.body, this.pawL, this.pawR, this.head);
+    this.hands.addChild(this.pawL, this.pawR);
+    this.root.addChild(this.shadow, this.tail, this.body, this.hands, this.head);
     this.drawWhiskers();
     this.drawTail();
   }
@@ -190,6 +201,53 @@ export class TopDownCat {
   /** 胡须抖动（胡须感应） */
   twitchWhiskers(): void {
     this.whiskerTwitch = 1;
+  }
+
+  /** 握竿瞄准的方向（0 = 正前方，正值向右） */
+  setAim(angle: number): void {
+    this.aimTarget = Math.max(-0.7, Math.min(0.7, angle));
+    this.lookTarget = this.aimTarget * 0.6;
+  }
+
+  /** 甩竿 */
+  castSwing(): void {
+    this.swing = 1;
+    this.tailExcite = 0.6;
+  }
+
+  /** 提竿 */
+  strike(): void {
+    this.strikeT = 1;
+  }
+
+  /** 遛鱼时往后仰，0~1 */
+  setLean(amount: number): void {
+    this.leanTarget = Math.max(0, Math.min(1, amount));
+  }
+
+  react(kind: 'happy' | 'sad'): void {
+    this.mood = kind;
+    this.moodTime = 2.6;
+    if (kind === 'happy') this.tailExcite = 1;
+  }
+
+  /** 甩竿动画进行中时竿子往后扬的程度 0~1（画面上竿子会显得短一些） */
+  get swingLift(): number {
+    return Math.sin(this.swing * Math.PI);
+  }
+
+  /** 竿子握把的位置（相对猫的坐标） */
+  get rodBase(): { x: number; y: number } {
+    // 爪子中间 (0, -52) 随 hands 旋转，再加上后仰的位移
+    const r = this.hands.rotation;
+    return {
+      x: 52 * Math.sin(r) + this.hands.position.x,
+      y: -52 * Math.cos(r) + this.hands.position.y,
+    };
+  }
+
+  get rodAngle(): number {
+    return this.hands.rotation;
   }
 
   update(dt: number): void {
@@ -214,8 +272,22 @@ export class TopDownCat {
     }
     this.earTwitch = Math.max(0, this.earTwitch - dt * 5);
     const twitch = Math.sin(this.earTwitch * Math.PI) * 0.35;
-    this.earL.rotation = -0.55 - (this.earTwitchSide < 0 ? twitch : 0);
-    this.earR.rotation = 0.55 + (this.earTwitchSide > 0 ? twitch : 0);
+    this.moodTime = Math.max(0, this.moodTime - dt);
+    if (this.moodTime === 0) this.mood = 'neutral';
+    const earBase = this.mood === 'happy' ? 0.3 : this.mood === 'sad' ? 1.05 : 0.55;
+    this.earL.rotation = -earBase - (this.earTwitchSide < 0 ? twitch : 0);
+    this.earR.rotation = earBase + (this.earTwitchSide > 0 ? twitch : 0);
+
+    // 握竿：瞄准、甩竿、提竿、后仰
+    this.aim += (this.aimTarget - this.aim) * Math.min(1, dt * 8);
+    this.swing = Math.max(0, this.swing - dt * 2.6);
+    this.strikeT = Math.max(0, this.strikeT - dt * 4);
+    this.lean += (this.leanTarget - this.lean) * Math.min(1, dt * 6);
+    const swingBack = -Math.sin(this.swing * Math.PI) * 0.55;
+    this.hands.rotation = this.aim + swingBack;
+    const pullBack = this.lean * 9 + Math.sin(this.strikeT * Math.PI) * 10;
+    this.hands.position.set(0, pullBack);
+    this.head.position.set(0, pullBack * 0.5);
 
     // 爪子
     this.pawReach = Math.max(0, this.pawReach - dt * 3);

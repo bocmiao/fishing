@@ -9,13 +9,16 @@
  * 动作（用分号分隔）：
  *   step:秒数        按固定步长推进游戏
  *   click:x,y        在逻辑坐标 (x, y) 处点击（1080 高的画面坐标）
+ *   move:x,y         把鼠标移到 (x, y)
+ *   down:x,y / up    在 (x, y) 按下鼠标 / 松开鼠标（用来蓄力、收线）
  *   key:按键         按一个键，例如 key:h
  *   wait:毫秒        等待真实时间（让 CSS 过渡动画播完）
  *   shot:名字        截图保存为 <out>/<名字>.png
  *   perf:帧数        测量逻辑更新的平均耗时（毫秒 / 帧）
- *   eval:代码        在页面里执行一段 JS 并打印结果
+ *   eval:代码        在页面里执行一段 JS 并打印结果（代码里不能有分号）
+ *   evalfile:文件@参数  执行文件里的函数表达式，例如 tools/bots/fight.js@30
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createServer } from 'vite';
@@ -96,6 +99,15 @@ try {
       const p = await page.evaluate(([lx, ly]) => window.__game.toScreen(lx, ly), [x, y]);
       await page.mouse.click(p.x, p.y);
       await page.evaluate(() => window.__game.step(1 / 60));
+    } else if (name === 'move' || name === 'down') {
+      const [x, y] = arg.split(',').map(Number);
+      const p = await page.evaluate(([lx, ly]) => window.__game.toScreen(lx, ly), [x, y]);
+      await page.mouse.move(p.x, p.y);
+      if (name === 'down') await page.mouse.down();
+      await page.evaluate(() => window.__game.step(1 / 60));
+    } else if (name === 'up') {
+      await page.mouse.up();
+      await page.evaluate(() => window.__game.step(1 / 60));
     } else if (name === 'wait') {
       // 等待真实时间（例如 CSS 过渡动画）
       await page.waitForTimeout(Number(arg) || 500);
@@ -116,6 +128,14 @@ try {
         return (performance.now() - t) / n;
       }, frames);
       console.log(`logic update: ${ms.toFixed(3)} ms/frame over ${frames} frames`);
+    } else if (name === 'evalfile') {
+      // 文件内容是一个函数表达式，例如 (seconds) => { ... }；@ 后面是参数
+      const [file, param] = arg.split('@');
+      const code = readFileSync(resolve(file), 'utf8').trim().replace(/;\s*$/, '');
+      const result = await page.evaluate(
+        `(${code})(${param === undefined ? '' : JSON.stringify(Number(param))})`,
+      );
+      console.log(`evalfile ${file}: ${JSON.stringify(result)}`);
     } else if (name === 'eval') {
       const result = await page.evaluate(arg);
       console.log(`eval: ${JSON.stringify(result)}`);

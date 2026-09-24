@@ -17,8 +17,17 @@ npm run build        # 生产构建
 npm run shot -- --scene pond --actions "click:900,500;step:2;shot:feed"   # 无头浏览器截图，说明见 tools/screenshot.mjs
 ```
 
-网址参数：`?scene=pond&seed=7&warmup=10&debug=1`（`shot=1` 为截图模式，由截图脚本使用）。
-游戏内：F3 显示调试信息。
+网址参数：`?scene=pond|fishing&seed=7&warmup=10&debug=1`（`shot=1` 为截图模式，由截图脚本使用）。
+游戏内：F3 显示调试信息；钓鱼画面里 F2 打开调参面板（遛鱼参数、跳时间、换天气）。
+
+其他工具：
+
+```bash
+npm run balance      # 遛鱼数值报告：几种"机器人钓手"跑每种鱼的上鱼率和用时（tools/balance/）
+npm run shot -- --scene fishing --actions "down:900,380;step:0.9;up;evalfile:tools/bots/wait-bite.js@90;evalfile:tools/bots/fight.js@40;shot:card"
+```
+
+`tools/bots/` 里是截图脚本用的小机器人（等咬钩、遛鱼、拨时间），可以用 `evalfile:` 动作调用。
 
 **提交前必须通过** `npm run typecheck && npm test`；改了画面的，用 `npm run shot` 截图自己看一遍。
 

@@ -1,6 +1,6 @@
 import { CanvasSource, Rectangle, Texture } from 'pixi.js';
 import { FISH_TEX_H, FISH_TEX_W, paintFishShadow, paintKoi } from './koiPainter';
-import type { KoiLook } from './koiLook';
+import type { FishShape, KoiLook } from './koiLook';
 
 const PAGE_SIZE = 2048;
 /** 格子之间留边，避免缩小（mipmap）时相邻的鱼互相渗色 */
@@ -24,10 +24,21 @@ interface Page {
 export class FishAtlas {
   private readonly pages: Page[] = [];
   private readonly scratch = new ImageData(FISH_TEX_W, FISH_TEX_H);
-  readonly shadow: Texture;
+  private readonly shadows = new Map<FishShape, Texture>();
 
-  constructor() {
-    this.shadow = this.allocate((data) => paintFishShadow(data, FISH_TEX_W, 0, 0));
+  /** 鲤形鱼的鱼影（锦鲤池用） */
+  get shadow(): Texture {
+    return this.shadowFor('carp');
+  }
+
+  /** 某种体型的鱼影，第一次用到时才画 */
+  shadowFor(shape: FishShape): Texture {
+    let tex = this.shadows.get(shape);
+    if (!tex) {
+      tex = this.allocate((data) => paintFishShadow(data, FISH_TEX_W, 0, 0, shape));
+      this.shadows.set(shape, tex);
+    }
+    return tex;
   }
 
   /** 画一条鱼，返回它的纹理 */

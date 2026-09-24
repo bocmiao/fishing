@@ -1,4 +1,10 @@
-import { Container, Rectangle, type FederatedPointerEvent, type RenderTexture } from 'pixi.js';
+import {
+  Container,
+  Rectangle,
+  Texture,
+  type FederatedPointerEvent,
+  type RenderTexture,
+} from 'pixi.js';
 import { Scene, type SceneContext, type ViewSize } from '../app/scene';
 import type { Rng } from '../sim/rng/rng';
 import { TopDownCat } from '../render/cat/topDownCat';
@@ -7,6 +13,7 @@ import { FishBody } from '../render/fish/fishBody';
 import { FISH_TEX_H, FISH_TEX_W } from '../render/fish/koiPainter';
 import { randomKoiLook, type KoiLook } from '../render/fish/koiLook';
 import { Flock, type FishAgent } from '../render/flock/flock';
+import { ambientAt } from '../render/fx/ambient';
 import { PelletField } from '../render/fx/pellets';
 import { PostOverlay } from '../render/fx/postOverlay';
 import { Specks } from '../render/fx/specks';
@@ -16,6 +23,8 @@ import { LilyPads } from '../render/props/lilyPads';
 import { renderProceduralPondBed } from '../render/water/pondBed';
 import { RippleField } from '../render/water/ripples';
 import { WaterSurface } from '../render/water/waterSurface';
+import { SEASON_NAMES } from '../sim/time/clock';
+import { WEATHER_NAMES } from '../sim/state';
 
 interface Koi {
   agent: FishAgent;
@@ -112,8 +121,15 @@ export class PondScene extends Scene {
     window.addEventListener('keydown', this.onKey);
 
     this.ctx.ui.set({
+      scene: 'pond',
       sceneTitle: '锦鲤池',
+      sceneSubtitle: '',
+      clockText: this.clockText(),
       hint: '点击水面撒鱼食　·　H 观鱼模式',
+      fishing: null,
+      fightActive: false,
+      catchCard: null,
+      sense: false,
       fishCount: this.koi.length,
       pelletsEaten: 0,
       watchMode: false,
@@ -154,7 +170,19 @@ export class PondScene extends Scene {
     }
   }
 
+  private clockText(): string {
+    const s = this.ctx.state;
+    const c = s.clock;
+    return `第 ${c.day + 1} 天 · ${SEASON_NAMES[c.season]} · ${c.formatTime()} · ${WEATHER_NAMES[s.weather]}`;
+  }
+
   override update(dt: number): void {
+    const state = this.ctx.state;
+    if (state.clock.advance(dt).reachedDayEnd) state.sleep();
+    const amb = ambientAt(state.clock.minute, state.weather);
+    this.water.setDim(amb.dim);
+    this.water.setCaustic(amb.caustic);
+    this.post.setTint(amb.tint, amb.tintAlpha);
     this.water.update(dt, this.ripples.ripples);
     this.flock.update(dt, this.pellets.pellets, (agent, item) => {
       this.pelletsEaten++;
@@ -205,7 +233,11 @@ export class PondScene extends Scene {
     this.uiTimer -= dt;
     if (this.uiTimer <= 0) {
       this.uiTimer = 0.5;
-      this.ctx.ui.set({ fishCount: this.koi.length, pelletsEaten: this.pelletsEaten });
+      this.ctx.ui.set({
+        fishCount: this.koi.length,
+        pelletsEaten: this.pelletsEaten,
+        clockText: this.clockText(),
+      });
     }
   }
 
@@ -227,10 +259,11 @@ export class PondScene extends Scene {
 
   override exit(): void {
     window.removeEventListener('keydown', this.onKey);
-    for (const k of this.koi) k.body.destroy();
+    // 先销毁显示对象，再销毁它们用到的纹理
+    this.water.setBed(Texture.EMPTY);
+    super.exit();
     this.atlas.destroy();
     this.bed.destroy(true);
-    super.exit();
   }
 
   /** 调试用：返回每条鱼的品种统计 */

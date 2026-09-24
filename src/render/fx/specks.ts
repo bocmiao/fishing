@@ -20,6 +20,8 @@ export class Specks {
   readonly container = new Container();
   private readonly items: Speck[] = [];
   private time = 0;
+  /** 整体漂移（水流），像素 / 秒 */
+  drift = { x: 0, y: 0 };
 
   constructor(
     private bounds: Rect,
@@ -54,8 +56,8 @@ export class Specks {
     for (const s of this.items) {
       // 沿着缓慢变化的流场漂
       const ang = valueNoise(s.x / 400, s.y / 400 + this.time * 0.02, 7) * Math.PI * 4;
-      s.x += Math.cos(ang) * s.speed * dt;
-      s.y += Math.sin(ang) * s.speed * dt;
+      s.x += (Math.cos(ang) * s.speed + this.drift.x) * dt;
+      s.y += (Math.sin(ang) * s.speed + this.drift.y) * dt;
       if (s.x < b.x) s.x += b.w;
       if (s.x > b.x + b.w) s.x -= b.w;
       if (s.y < b.y) s.y += b.h;

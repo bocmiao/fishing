@@ -12,6 +12,7 @@ out vec4 finalColor;
 uniform vec2 uSize;
 uniform float uVignette;
 uniform float uGrain;
+uniform vec4 uTint;
 ${NOISE_GLSL}
 
 void main() {
@@ -25,7 +26,9 @@ void main() {
   n = (n + fiber * 0.35) * uGrain;
   float lighten = max(n, 0.0);
   float darken = max(-n, 0.0);
-  finalColor = vec4(vec3(lighten), v + darken);
+  // 时段色调：清晨偏暖、黄昏偏橘、夜里偏深蓝
+  float a = clamp(uTint.a + v + darken, 0.0, 1.0);
+  finalColor = vec4(uTint.rgb * uTint.a + vec3(lighten), a);
 }
 `;
 
@@ -38,9 +41,22 @@ export class PostOverlay {
         uSize: { value: new Float32Array([width, height]), type: 'vec2<f32>' },
         uVignette: { value: vignette, type: 'f32' },
         uGrain: { value: grain, type: 'f32' },
+        uTint: { value: new Float32Array([0, 0, 0, 0]), type: 'vec4<f32>' },
       },
     });
     this.mesh.eventMode = 'none';
+  }
+
+  /** 整体色调（0xRRGGBB 与不透明度） */
+  setTint(color: number, alpha: number): void {
+    const u = (this.mesh.shader!.resources.postUniforms as { uniforms: { uTint: Float32Array } })
+      .uniforms;
+    u.uTint.set([
+      ((color >> 16) & 0xff) / 255,
+      ((color >> 8) & 0xff) / 255,
+      (color & 0xff) / 255,
+      alpha,
+    ]);
   }
 
   resize(width: number, height: number): void {

@@ -1,0 +1,392 @@
+{
+  "species": [
+    {
+      "id": "crucian",
+      "name": "鲫鱼",
+      "rarity": "common",
+      "spots": ["creek"],
+      "zones": {
+        "open": 0.8,
+        "deep": 1.1,
+        "weeds": 1.4,
+        "shallow": 0.5,
+        "rocks": 0.5
+      },
+      "periods": {
+        "morning": 1.1,
+        "day": 1.0,
+        "dusk": 1.3,
+        "night": 0.5
+      },
+      "weather": {
+        "sunny": 1.0,
+        "cloudy": 1.1,
+        "rain": 1.1
+      },
+      "seasons": {
+        "spring": 1.3,
+        "summer": 1.0,
+        "autumn": 1.1,
+        "winter": 0.6
+      },
+      "baits": {
+        "worm": 1.3,
+        "dough": 1.4,
+        "corn": 0.9
+      },
+      "weightKg": {
+        "min": 0.08,
+        "mode": 0.25,
+        "max": 1.2
+      },
+      "condition": 0.025,
+      "shape": "carp",
+      "behavior": {
+        "wariness": 0.35,
+        "nibbles": [1, 3],
+        "biteWindow": 0.85,
+        "approachSpeed": 1.0,
+        "baitThief": 0.05,
+        "school": [1, 1]
+      },
+      "fight": {
+        "style": "gentle",
+        "power": 0.4,
+        "stamina": 7
+      },
+      "price": 12,
+      "note": "春天的鲫鱼最肥。水草边下饵，浮漂点两下再沉，这时候提竿最稳。",
+      "look": {
+        "base": "#9aa592",
+        "back": "#5f6f5c",
+        "fin": "#b8b9a0",
+        "finAlpha": 0.5,
+        "scales": 0.55
+      }
+    },
+    {
+      "id": "stone_moroko",
+      "name": "麦穗鱼",
+      "rarity": "common",
+      "spots": ["creek"],
+      "zones": {
+        "open": 0.7,
+        "deep": 0.3,
+        "weeds": 1.0,
+        "shallow": 1.5,
+        "rocks": 0.8
+      },
+      "periods": {
+        "morning": 1.0,
+        "day": 1.2,
+        "dusk": 1.0,
+        "night": 0.3
+      },
+      "weather": {
+        "sunny": 1.1,
+        "cloudy": 1.0,
+        "rain": 0.8
+      },
+      "seasons": {
+        "spring": 1.0,
+        "summer": 1.3,
+        "autumn": 1.0,
+        "winter": 0.5
+      },
+      "baits": {
+        "worm": 1.2,
+        "dough": 1.5,
+        "corn": 0.3
+      },
+      "weightKg": {
+        "min": 0.004,
+        "mode": 0.01,
+        "max": 0.03
+      },
+      "condition": 0.012,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.15,
+        "nibbles": [3, 7],
+        "biteWindow": 0.45,
+        "approachSpeed": 1.3,
+        "baitThief": 0.3,
+        "school": [4, 7]
+      },
+      "fight": {
+        "style": "gentle",
+        "power": 0.12,
+        "stamina": 2
+      },
+      "price": 2,
+      "note": "小不点，专偷饵。浮漂一直点头却不沉，多半是它们在捣乱。",
+      "look": {
+        "base": "#b3a98d",
+        "back": "#6d6450",
+        "fin": "#c9bfa5",
+        "finAlpha": 0.45,
+        "scales": 0.7,
+        "spots": "#4a4336"
+      }
+    },
+    {
+      "id": "sharpbelly",
+      "name": "白条",
+      "rarity": "common",
+      "spots": ["creek"],
+      "zones": {
+        "open": 1.3,
+        "deep": 0.7,
+        "weeds": 0.6,
+        "shallow": 1.1,
+        "rocks": 0.6
+      },
+      "periods": {
+        "morning": 1.1,
+        "day": 1.4,
+        "dusk": 0.9,
+        "night": 0.2
+      },
+      "weather": {
+        "sunny": 1.2,
+        "cloudy": 1.0,
+        "rain": 0.7
+      },
+      "seasons": {
+        "spring": 1.0,
+        "summer": 1.4,
+        "autumn": 1.0,
+        "winter": 0.4
+      },
+      "baits": {
+        "worm": 1.0,
+        "dough": 1.3,
+        "corn": 0.6
+      },
+      "weightKg": {
+        "min": 0.02,
+        "mode": 0.05,
+        "max": 0.15
+      },
+      "condition": 0.009,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.25,
+        "nibbles": [0, 2],
+        "biteWindow": 0.55,
+        "approachSpeed": 1.7,
+        "baitThief": 0.1,
+        "school": [3, 5]
+      },
+      "fight": {
+        "style": "burst",
+        "power": 0.3,
+        "stamina": 4.5
+      },
+      "price": 5,
+      "note": "白天在水面上成群乱窜。下口快，提竿要更快。",
+      "look": {
+        "base": "#cdd3d0",
+        "back": "#7f8b8c",
+        "fin": "#dfe2dc",
+        "finAlpha": 0.4,
+        "scales": 0.35
+      }
+    },
+    {
+      "id": "hooksnout",
+      "name": "马口鱼",
+      "rarity": "uncommon",
+      "spots": ["creek"],
+      "zones": {
+        "open": 0.8,
+        "deep": 0.4,
+        "weeds": 0.5,
+        "shallow": 1.0,
+        "rocks": 1.6
+      },
+      "periods": {
+        "morning": 1.7,
+        "day": 1.0,
+        "dusk": 0.8,
+        "night": 0.1
+      },
+      "weather": {
+        "sunny": 1.2,
+        "cloudy": 1.0,
+        "rain": 0.7
+      },
+      "seasons": {
+        "spring": 1.3,
+        "summer": 1.4,
+        "autumn": 0.9,
+        "winter": 0.3
+      },
+      "baits": {
+        "worm": 1.6,
+        "dough": 0.6,
+        "corn": 0.2
+      },
+      "weightKg": {
+        "min": 0.05,
+        "mode": 0.12,
+        "max": 0.35
+      },
+      "condition": 0.011,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.5,
+        "nibbles": [0, 1],
+        "biteWindow": 0.5,
+        "approachSpeed": 1.9,
+        "baitThief": 0,
+        "school": [1, 2]
+      },
+      "fight": {
+        "style": "burst",
+        "power": 0.6,
+        "stamina": 9
+      },
+      "price": 25,
+      "note": "清晨的石滩最多。雄鱼一身蓝绿横纹、鳍尖橘红，脾气急，咬钩就冲。",
+      "look": {
+        "base": "#b9c4c0",
+        "back": "#4f6f73",
+        "fin": "#e0874f",
+        "finAlpha": 0.6,
+        "scales": 0.4,
+        "bars": "#3f7e82"
+      }
+    },
+    {
+      "id": "loach",
+      "name": "泥鳅",
+      "rarity": "uncommon",
+      "spots": ["creek"],
+      "zones": {
+        "open": 0.4,
+        "deep": 0.6,
+        "weeds": 1.1,
+        "shallow": 1.4,
+        "rocks": 0.6
+      },
+      "periods": {
+        "morning": 1.0,
+        "day": 0.9,
+        "dusk": 1.1,
+        "night": 1.3
+      },
+      "weather": {
+        "sunny": 0.6,
+        "cloudy": 1.0,
+        "rain": 3.0
+      },
+      "seasons": {
+        "spring": 1.1,
+        "summer": 1.3,
+        "autumn": 1.0,
+        "winter": 0.3
+      },
+      "baits": {
+        "worm": 1.9,
+        "dough": 0.5,
+        "corn": 0.2
+      },
+      "weightKg": {
+        "min": 0.01,
+        "mode": 0.025,
+        "max": 0.08
+      },
+      "condition": 0.006,
+      "shape": "eel",
+      "behavior": {
+        "wariness": 0.2,
+        "nibbles": [2, 4],
+        "biteWindow": 0.7,
+        "approachSpeed": 0.9,
+        "baitThief": 0.12,
+        "school": [1, 3]
+      },
+      "fight": {
+        "style": "dive",
+        "power": 0.3,
+        "stamina": 5
+      },
+      "price": 8,
+      "note": "下雨天泥鳅满沟钻，蚯蚓最灵。上钩以后往泥里钻，竿子要往反方向带。",
+      "look": {
+        "base": "#8f8462",
+        "back": "#5c5540",
+        "fin": "#a39a78",
+        "finAlpha": 0.45,
+        "scales": 0,
+        "spots": "#4e4633"
+      }
+    },
+    {
+      "id": "swamp_eel",
+      "name": "黄鳝",
+      "rarity": "rare",
+      "spots": ["creek"],
+      "zones": {
+        "open": 0.1,
+        "deep": 0.5,
+        "weeds": 1.0,
+        "shallow": 0.3,
+        "rocks": 1.8
+      },
+      "periods": {
+        "morning": 0.2,
+        "day": 0.05,
+        "dusk": 0.8,
+        "night": 2.4
+      },
+      "weather": {
+        "sunny": 0.9,
+        "cloudy": 1.0,
+        "rain": 1.4
+      },
+      "seasons": {
+        "spring": 0.9,
+        "summer": 1.4,
+        "autumn": 1.0,
+        "winter": 0.1
+      },
+      "baits": {
+        "worm": 2.2,
+        "dough": 0.1,
+        "corn": 0.1
+      },
+      "weightKg": {
+        "min": 0.1,
+        "mode": 0.22,
+        "max": 0.6
+      },
+      "condition": 0.0035,
+      "shape": "eel",
+      "behavior": {
+        "wariness": 0.45,
+        "nibbles": [1, 2],
+        "biteWindow": 1.0,
+        "approachSpeed": 0.7,
+        "baitThief": 0,
+        "school": [1, 1]
+      },
+      "fight": {
+        "style": "dive",
+        "power": 0.8,
+        "stamina": 12
+      },
+      "price": 40,
+      "note": "天黑以后在石缝里探头。拽住了就往洞里钻，要往反方向拉。",
+      "look": {
+        "base": "#b59a52",
+        "back": "#6e5a2c",
+        "fin": "#b59a52",
+        "finAlpha": 0.2,
+        "scales": 0,
+        "spots": "#5a4a26"
+      }
+    }
+  ]
+}

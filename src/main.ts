@@ -14,10 +14,11 @@ async function main(): Promise<void> {
   const params = readLaunchParams();
   const ui = createStore({ ...initialUiState, debug: params.debug });
 
-  createRoot(document.getElementById('ui')!).render(createElement(App, { store: ui }));
-
   const game = new Game(params, ui);
-  await game.start(document.getElementById('game')!, (ctx) => createScene(params.scene, ctx));
+  createRoot(document.getElementById('ui')!).render(
+    createElement(App, { store: ui, send: (cmd) => game.commands.send(cmd) }),
+  );
+  await game.start(document.getElementById('game')!, createScene);
   if (params.shot) document.body.style.cursor = 'none';
 }
 
