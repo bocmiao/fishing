@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.vite/
+coverage/
+*.log
+.DS_Store
+# local screenshots from tools/screenshot.mjs (milestone shots go to docs/screenshots/)
+/screenshots/
