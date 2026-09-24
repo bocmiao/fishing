@@ -17,10 +17,10 @@
 
    | 资源 | 视角 |
    |---|---|
-   | 地面纹理、池底、水底、浮在水面的东西（睡莲、荷叶） | **正上方俯视（90°）** |
-   | 树、房子、摊位、篱笆、石灯笼等立着的物件 | **3/4 俯视**：同时看得到正面和顶面，像星露谷、动森那样 |
-   | 角色（阿喵、NPC 小人） | **3/4 俯视**，分正面、背面、侧面三个朝向 |
-   | 对话立绘、笔记插画、老宅室内 | 正常的平视插画 |
+   | 池底、钓点水底（含底部的岸边）、浮在水面的东西（睡莲、荷叶）、俯视阿喵 | **正上方俯视（90°）** |
+   | 场景插画（老宅院子、集市）、摊位后的 NPC 小人 | **3/4 俯视**：同时看得到正面和顶面，像星露谷、动森那样 |
+   | 对话立绘、举鱼插画、笔记插画、老宅室内、地图 | 正常的平视插画 |
+   | 方案 C 才需要：地面纹理、立着的物件、三朝向行走角色 | 地面正俯视，物件和角色 3/4 俯视 |
 
 2. **描边**：场景和物件**不描边**；角色可以用**细的深色描边**（深棕或墨绿，不用纯黑），让角色从背景里跳出来。
 3. **造型**：扁平、简洁、圆润。
@@ -76,7 +76,7 @@
 | 版本 | 文件 | 用途 |
 |---|---|---|
 | 品牌版 | [`assets/reference/cat-brand.webp`](../assets/reference/cat-brand.webp)（已有） | Miao.Club 标志、Steam 头像、周边。**保持原样不动** |
-| 游戏版 | 待制作 | 游戏里行走的主角、对话立绘 |
+| 游戏版 | 待制作 | 钓鱼和鱼塘画面里的俯视阿喵、举鱼插画、对话立绘；以后方案 C 的行走角色 |
 
 ### 2.2 游戏版要保留的设计要素
 
@@ -97,7 +97,35 @@
 | 高饱和配色 | 往第 1.2 节色板靠（外套稍灰、白色偏暖） |
 | 胸像 | 全身，**Q 版比例**，头大身小，头身比约 1 : 1.2 ~ 1 : 1.5 |
 
-### 2.4 交付物
+### 2.4 方案 B 的交付物（现在需要）
+
+**CHAR-T01 俯视阿喵拆件**
+
+阿喵坐在画面底部的岸边、面朝水面（画面上方），从**正上方**往下看。看得到的是：圆草帽的顶面、从帽檐下露出的两只黑耳朵、靛蓝外套的肩背、伸向前方的两只白手套爪子，以及绕在身旁的尾巴。
+
+| 部件 | 说明 |
+|---|---|
+| 草帽 | 俯视是一个圆，帽檐的磨损破口要看得出来 |
+| 左耳、右耳 | 从帽檐下露出，独立，用来做表情 |
+| 身体 | 外套的肩背，含袖子上的补丁 |
+| 左爪、右爪 | 白手套，握竿用 |
+| 尾巴 | 分 3 段，用来做摆尾 |
+| 竹竿 | 单独一张，横放，竿尖朝上；红白浮漂单独一张 |
+| 饲料袋 | 单独一张（撒饲料动作用） |
+
+规格：画布 1024×1024，所有部件导出为透明 PNG，**每个部件都保持在画布上的原位**（叠在一起就是完整的阿喵），关节处多画一截，被挡住的部分也画完整。也可以直接交分层 PSD。
+
+**CHAR-003 对话立绘**
+- 半身，平视角度，透明背景，1024×1536
+- 5 种表情：平静、开心、惊讶、得意、失落
+- 眼睛被墨镜挡住，**表情靠耳朵、嘴、墨镜的角度和脸颊红晕来表达**
+
+**CHAR-004 举鱼插画**（上鱼时的特写）
+- 阿喵开心地把鱼举起来，平视，透明背景，1536×1536
+- **鱼不要画**：鱼由代码画进去，所以每种鱼都能被举起来。请分两层交付：阿喵本体一层、握鱼的两只爪子一层（爪子盖在鱼上面），鱼的位置空出来
+- 2 个版本：小鱼（单手拎起）、大鱼（双手抱着，吃力但得意）
+
+### 2.5 方案 C 的交付物（以后需要）
 
 **CHAR-001 三视图**（先交这个，确认形象）
 - 正面（面朝下）、背面（面朝上）、侧面（面朝右，向左走时镜像翻转），3/4 俯视角度
@@ -127,28 +155,31 @@
 3. **被挡住的部分也要画完整**：比如被身体挡住的那截手臂。
 4. 每个部件告诉我大概的**转轴位置**（比如肩膀、手肘、尾巴根部），标在一张示意图上即可，不标我也能自己判断。
 
-**CHAR-003 对话立绘**
-- 半身，平视角度，透明背景，1024×1536
-- 5 种表情：平静、开心、惊讶、得意、失落
-- 眼睛被墨镜挡住，**表情靠耳朵、嘴、墨镜的角度和脸颊红晕来表达**
+### 2.6 制作路线
 
-### 2.5 两种制作路线
+**方案 B 的素材（CHAR-T01、CHAR-003、CHAR-004）**：造型简单，**图像 AI 就能胜任**，也可以顺便请画师一起画。用图像 AI 时，把品牌图作为角色参考，参考提示词：
 
-**路线一（推荐）：请画师**。主角是游戏和品牌的脸，值得花钱。可以在米画师等约稿平台发布需求，下面这段可以直接当约稿说明：
+> CHAR-T01：the same cat character as the reference image, seen from directly above while sitting at the bottom edge of the frame facing up toward a pond: we see only the round top of a worn woven straw hat, two black cat ears poking out from under the brim, the shoulders and back of an indigo jacket with a gray sleeve patch, two white paws reaching forward, and a black-and-white tail curled beside it. Flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, plain white background, no text
+>
+> CHAR-004：the same cat character as the reference image, cheerful, holding up something with both paws above its chest (leave the held object empty), half-body, eye-level view, flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, plain white background, no text
+
+生成后在免费的在线修图工具 Photopea 里按第 2.4 节拆分图层；拆不好也没关系，把整张图给我，我来判断怎么处理。
+
+**方案 C 的素材（CHAR-001、CHAR-002）**：三视图和行走拆件难度高，**推荐请画师**。可以在米画师等约稿平台发布需求，下面这段可以直接当约稿说明：
 
 > 需要为一款国风治愈的钓鱼养鱼游戏绘制主角：一只拟人的奶牛猫。已有品牌形象图（附件），需要改成游戏画风：扁平水彩插画风格、细深色描边、低饱和配色、Q 版全身。
-> 交付：① 3/4 俯视角度的三视图（正面、背面、侧面）；② 每个朝向的拆件（部件清单和规格见附件文档第 2.4 节），用于程序骨骼动画；③ 半身对话立绘 5 种表情。
+> 交付：① 3/4 俯视角度的三视图（正面、背面、侧面）；② 每个朝向的拆件（部件清单和规格见附件文档第 2.5 节），用于程序骨骼动画；③（如果方案 B 的素材还没做）俯视拆件、举鱼插画、半身对话立绘 5 种表情。
 > 用途：商业游戏（Steam），需要商用授权。
 >
 > （附件：品牌图 `cat-brand.webp`、本文档第 1 节和第 2 节、场景风格参考 KEY-001）
 
-**路线二：图像 AI + 手动拆分**。便宜，但质量和一致性不稳定。
-1. 把品牌图作为角色参考，用下面的提示词生成三视图：
-   > character turnaround sheet of the same cat character in the reference image: an anthropomorphic tuxedo cat wearing black square sunglasses, a worn woven straw hat, an indigo jacket with a gray patch on the sleeve, and a cream Chinese mandarin-collar shirt with dark blue frog buttons. Chibi full-body proportions with a big head. Front view, back view and side view, 3/4 top-down angle, neutral standing pose, arms relaxed. Flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, plain white background, no text
-2. 挑出最满意的，用免费的在线修图工具 Photopea 按第 2.4 节的清单手动拆分图层，缺的部分（被挡住的手臂等）需要补画。
-3. 拆分工作量大、需要一点修图基础。可以先试一个朝向，不顺利再改请画师。
+预算紧也可以用图像 AI 出三视图，参考提示词：
 
-**不管走哪条路线**，拆件到位前我都会先用代码画的占位猫开发，不耽误进度。
+> character turnaround sheet of the same cat character in the reference image: an anthropomorphic tuxedo cat wearing black square sunglasses, a worn woven straw hat, an indigo jacket with a gray patch on the sleeve, and a cream Chinese mandarin-collar shirt with dark blue frog buttons. Chibi full-body proportions with a big head. Front view, back view and side view, 3/4 top-down angle, neutral standing pose, arms relaxed. Flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, plain white background, no text
+
+但三个朝向拆件的工作量大、需要修图基础，可以先试一个朝向，不顺利再改请画师。
+
+**不管走哪条路线**，素材到位前我都会先用代码画的占位猫开发，不耽误进度。
 
 ---
 
@@ -161,7 +192,7 @@ AI 出图最大的问题是每张图风格都不一样，按下面的顺序来�
    - Midjourney：在提示词后加 `--sref <主视觉图片链接>`
    - 即梦：上传主视觉作为"参考图 / 风格参考"
    - GPT 图像：把主视觉和提示词一起发过去，说明"保持这张图的风格"
-3. **角色类（NPC）以阿喵的游戏版三视图作为风格参考**，保证所有角色像同一个世界的。
+3. **角色类（NPC）以阿喵的游戏版形象（立绘或举鱼插画）作为风格参考**，保证所有角色像同一个世界的。
 4. **同一类资源一次性批量生成**，用同样的提示词结构，只改描述的主体。
 5. **不要用参考视频（碧潭观鱼）的截图当参考图**，避免生成出和别人作品过于相似、有侵权风险的内容。
 6. 轻微的风格差异我会在游戏里用统一调色来弥补，不必追求完美。
@@ -172,7 +203,7 @@ AI 出图最大的问题是每张图风格都不一样，按下面的顺序来�
 
 按资源类型选一段作为开头，再接具体描述。
 
-**A. 俯视类**（地面纹理、池底、水底、水面物件）
+**A. 俯视类**（池底、钓点水底、水面物件；方案 C 的地面纹理）
 
 ```
 top-down view, flat illustration, subtle watercolor and gouache texture, paper grain,
@@ -183,7 +214,7 @@ no text, no watermark, no characters
 
 > 中文：正上方俯视视角，扁平插画，淡淡的水彩和水粉质感，纸张纹理，低饱和度青绿色调，左上方柔和漫射光，宁静治愈，新中式极简美学，造型简洁，无描边，无文字，无水印，无角色
 
-**B. 3/4 物件类**（树、房子、摊位等）
+**B. 3/4 类**（场景插画；方案 C 的树、房子、摊位等单个物件）
 
 ```
 3/4 top-down view showing both the front and the top of the object, like a cozy
@@ -194,16 +225,19 @@ single isolated object, transparent background, no text, no watermark
 ```
 
 > 中文：3/4 俯视视角，同时看得到物体的正面和顶面，像俯视角的田园游戏但不是像素风，扁平插画，淡淡的水彩和水粉质感，纸张纹理，低饱和度配色，左上方柔和漫射光，中国南方乡村，造型简洁，无描边，单个物体，透明背景，无文字，无水印
+>
+> 用于**整张场景插画**时，把 single isolated object, transparent background（单个物体，透明背景）换成场景描述和画幅比例。
 
 ---
 
 ## 5. 图片资源清单
 
-**优先级**：**P0** = 现在就要（M0、M1）· **P1** = 一天循环版本（M2）· **P2** = 正式版（M4、M5）
+**优先级**：**P0** = 现在就要（M0、M1）· **P1** = 一天循环版本（M2）· **P2** = 正式版（M4、M5）· **方案 C** = 行走版（M7）
 
 **通用规格**：
-- 池底、水底：3840×2160，PNG
-- 地面纹理：1024×1024，**可无缝拼接**
+- 池底：3840×2160，PNG
+- 钓点水底：**宽幅**，约 7680×2160（32:9），底部约 15% 是岸边。每个钓位就是镜头在这张宽图上的一个位置。工具出不了这么宽，就生成两三张 16:9 的相邻画面，我来拼接
+- 场景插画：3840×2160，PNG
 - 物件：**透明背景** PNG，最长边 1024。做不出透明就用纯白背景，我来抠图。
 - NPC 立绘：1024×1536，透明背景
 - 笔记插画：1536×1024，米白纸底
@@ -213,28 +247,22 @@ single isolated object, transparent background, no text, no watermark
 | 编号 | 内容 | 提示词（接在通用提示词后） |
 |---|---|---|
 | **KEY-001** | 场景主视觉，锁定风格用，**不含角色** | 〔A〕+ a serene koi pond seen from directly above, a few red-and-white and golden koi swimming, lily pads, mossy stones along the edge, soft caustic light patterns on the pond bed, 16:9。生成 4~8 版挑一张；这是唯一允许画鱼的场景图 |
-| **CHAR-001** | 阿喵三视图 | 见第 2 节 |
-| **CHAR-002** | 阿喵拆件 | 见第 2 节（CHAR-001 确认后） |
 | **BG-001** | 鱼塘池底 ×3（a / b / c） | 〔A〕+ an empty shallow pond bed seen through clear water, scattered mossy stones, soft green algae patches, sandy areas, slightly darker toward the center, dense moss and plants around the edges, NO fish, NO lily pads, NO reflections, NO ripples, 16:9 |
-| **BG-002** | 小溪水底 | 〔A〕+ a clear mountain creek bed, rounded river pebbles, a shallow sandy area on one side and a deeper darker pool in the middle, gentle flow from top to bottom, NO fish, NO reflections, 16:9 |
-| **TEX-001** | 草地纹理 | 〔A〕+ seamless tileable texture of short soft grass, a few tiny wildflowers, square |
-| **TEX-002** | 泥土路纹理 | 〔A〕+ seamless tileable texture of a packed earth country path, small pebbles, square |
-| **TEX-003** | 石板路纹理 | 〔A〕+ seamless tileable texture of old gray flagstones with moss in the gaps, square |
+| **BG-002** | 小溪钓点水底（宽幅） | 〔A〕+ a wide panorama of a clear mountain creek seen from directly above, rounded river pebbles, shallow sandy areas and deeper darker pools, a few waterweed patches, gentle flow from left to right, the bottom edge of the image is a grassy creek bank with a few flat stones, NO fish, NO reflections, 32:9 |
 | **PROP-001** | 睡莲叶 ×4 | 〔A〕+ a single water lily pad, isolated, transparent background |
-| **PROP-002** | 池边石头 ×4 | 〔B〕+ a single mossy pond-side stone |
+| **PROP-002** | 池边石头 ×4 | 〔A〕+ a single mossy stone, isolated, transparent background |
 
 ### P1：一天循环版本
 
 | 编号 | 内容 | 提示词要点 |
 |---|---|---|
+| CHAR-T01 | 俯视阿喵拆件 | 见第 2 节 |
 | CHAR-003 | 阿喵对话立绘 5 种表情 | 见第 2 节 |
-| KEY-002 | 带主角的主视觉：阿喵坐在锦鲤池边钓鱼 | 以 KEY-001 为风格参考、CHAR-001 为角色参考；将来做 Steam 商店图 |
-| OBJ-001 | 老宅外观：青瓦白墙的南方老房子，带小院 | 〔B〕+ an old southern Chinese farmhouse with gray tiled roof and white walls, small courtyard gate |
-| OBJ-002 | 树木：柳树、竹丛、桂花树、枫树（秋），各 2 版 | 〔B〕+ a single 〔树名〕 tree |
-| OBJ-003 | 院子物件：篱笆（可拼接）、木桥、石阶、长椅、水缸、晾衣竹竿、柴堆 | 〔B〕+ 〔物件名〕 |
-| OBJ-004 | 集市摊位 ×4：鱼摊、杂货摊、渔具摊、公告栏 | 〔B〕+ a small open-air village market stall selling 〔货物〕, with a cloth awning |
-| TEX-004 | 河滩沙地纹理 | 〔A〕+ seamless tileable texture of damp riverside sand with small shells and pebbles |
-| NPC-001~003 | 周叔（水獭）、阿婆（仓鼠）、小满（柴犬）：各一张**场景小人**（3/4 正面，站姿）+ 一张**对话立绘** | 见下方模板；以 CHAR-001 为风格参考 |
+| CHAR-004 | 阿喵举鱼插画 ×2 | 见第 2 节 |
+| KEY-002 | 带主角的主视觉：阿喵坐在锦鲤池边钓鱼 | 以 KEY-001 为风格参考、品牌图为角色参考；将来做 Steam 商店图 |
+| SCENE-001 | 老宅院子插画：青瓦白墙的南方老房子、屋后的方塘（**画成空池，我来填水和鱼**）、屋旁长满杂草和石头的荒地、竹林、通往村子的小路 | 〔B〕+ 场景描述，16:9。方塘、屋门、荒地、小路都要能点击，所以**彼此不要重叠** |
+| SCENE-002 | 柳溪村集市插画：露天集市，4 个摊位（鱼摊、杂货摊、渔具摊、公告栏），**摊位后面空着**（NPC 单独画、叠上去） | 〔B〕+ a small open-air village market with four stalls with cloth awnings, 16:9 |
+| NPC-001~003 | 周叔（水獭）、阿婆（仓鼠）、小满（柴犬）：各一张**摊位小人**（3/4 正面，上半身露在摊位后面）+ 一张**对话立绘** | 见下方模板；以阿喵的游戏版形象为风格参考 |
 | ROOM-001 | 老宅室内插画：床、旧收音机、摆着笔记本的木桌、奖杯架、窗外看得到方塘 | 平视插画，16:9；这些物品要能点击，所以**彼此不要重叠** |
 | MAP-001 | 村子地图：标出老宅、柳溪村、小溪、荷花湖、大河、山涧 | 像**夹在笔记本里的手绘地图**，米白纸底，不用俯视照片感 |
 | BG-012 | 荷花湖水底 | 同 BG-001 结构，改为"lake bed, deeper, with waterweed areas" |
@@ -246,12 +274,12 @@ single isolated object, transparent background, no text, no watermark
 **NPC 模板**：
 > flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, an anthropomorphic 〔动物〕 character, 〔身份和外观〕, chibi proportions matching the reference character, gentle expression, simple modern Chinese countryside clothing, transparent background, no text
 >
-> 场景小人追加：full body, 3/4 top-down view, front facing, standing
+> 摊位小人追加：upper body, 3/4 top-down view, front facing
 > 对话立绘追加：half-body portrait, eye-level view
 >
 > 示例：周叔——an otter, a friendly middle-aged fishmonger, rubber apron, rolled-up sleeves
 
-NPC 平时只站在摊位上做待机动作，场景小人**不需要拆件**，交一张完整的图即可，简单的起伏和摆尾我用代码实现。
+NPC 平时只站在摊位后面做待机动作，摊位小人**不需要拆件**，交一张完整的图即可，简单的起伏和摆尾我用代码实现。
 
 **笔记插画模板**（侧面，博物志风格）：
 > naturalist field-guide illustration of a 〔鱼的英文名〕, side view, watercolor on cream paper, muted natural colors, delicate and minimal, like an old Chinese naturalist's notebook, no text, no background objects
@@ -260,7 +288,7 @@ NPC 平时只站在摊位上做待机动作，场景小人**不需要拆件**，
 
 ### P2：正式版
 
-- 其余钓点：大河渡口、山涧深潭、冰湖（冰面俯视，可凿洞）、外公的秘密钓点的水底和岸边物件
+- 其余钓点的宽幅水底：大河渡口、山涧深潭、冰湖（冰面俯视，可凿洞）、外公的秘密钓点
 - NPC-004~006：老韩（苍鹭）、林先生（丹顶鹤）、村长（老水牛）
 - 其余约 30 种鱼的笔记插画；6 条传说鱼的插画（风格更神秘，可以加一点金色或墨色晕染）
 - 鱼塘装饰约 40 件：石灯笼、小石桥、汀步、假山、竹筒流水、水车、奖杯……
@@ -270,6 +298,21 @@ NPC 平时只站在摊位上做待机动作，场景小人**不需要拆件**，
   - 游戏库封面 600×900 · 游戏库主视觉 3840×1240 · 透明 Logo
 
 > 界面图标（饵料、渔具、饲料等）和游戏里的鱼都由我用代码绘制，**不需要**画师或图像 AI 制作。
+
+### 方案 C：行走版（M7 再做）
+
+| 编号 | 内容 | 提示词要点 |
+|---|---|---|
+| CHAR-001、CHAR-002 | 阿喵三视图 + 行走拆件 | 见第 2 节，推荐请画师 |
+| NPC 场景小人 | 6 个 NPC 的全身站姿（3/4 正面） | NPC 模板 + full body, 3/4 top-down view, front facing, standing |
+| TEX-001 | 草地纹理 | 〔A〕+ seamless tileable texture of short soft grass, a few tiny wildflowers, square（1024×1024，可无缝拼接，下同） |
+| TEX-002 | 泥土路纹理 | 〔A〕+ seamless tileable texture of a packed earth country path, small pebbles, square |
+| TEX-003 | 石板路纹理 | 〔A〕+ seamless tileable texture of old gray flagstones with moss in the gaps, square |
+| TEX-004 | 河滩沙地纹理 | 〔A〕+ seamless tileable texture of damp riverside sand with small shells and pebbles, square |
+| OBJ-001 | 老宅外观：青瓦白墙的南方老房子，带小院 | 〔B〕+ an old southern Chinese farmhouse with gray tiled roof and white walls, small courtyard gate |
+| OBJ-002 | 树木：柳树、竹丛、桂花树、枫树（秋），各 2 版 | 〔B〕+ a single 〔树名〕 tree |
+| OBJ-003 | 院子物件：篱笆（可拼接）、木桥、石阶、长椅、水缸、晾衣竹竿、柴堆 | 〔B〕+ 〔物件名〕 |
+| OBJ-004 | 集市摊位 ×4：鱼摊、杂货摊、渔具摊、公告栏 | 〔B〕+ a small open-air village market stall selling 〔货物〕, with a cloth awning |
 
 ---
 
@@ -316,10 +359,10 @@ peaceful, pastoral, slow tempo, warm lo-fi texture, no vocals
 | SFX-051 | 满足的喵（上鱼时） | a pleased, satisfied cat meow | |
 | SFX-052 | 惊讶的喵 | a surprised short cat chirp | |
 | SFX-053 | 呼噜（打盹） | a cat purring softly | ✅ |
-| SFX-054 | 脚步·草地 | soft paw footsteps on grass, several variations | |
-| SFX-055 | 脚步·泥土 | soft paw footsteps on dirt path, several variations | |
-| SFX-056 | 脚步·石板 | soft paw footsteps on stone, several variations | |
-| SFX-057 | 脚步·木桥 | soft paw footsteps on wooden planks, several variations | |
+| SFX-054 | 脚步·草地（方案 C） | soft paw footsteps on grass, several variations | |
+| SFX-055 | 脚步·泥土（方案 C） | soft paw footsteps on dirt path, several variations | |
+| SFX-056 | 脚步·石板（方案 C） | soft paw footsteps on stone, several variations | |
+| SFX-057 | 脚步·木桥（方案 C） | soft paw footsteps on wooden planks, several variations | |
 | **钓鱼** | | | |
 | SFX-001 | 抛竿 | fishing rod cast, line whoosh | |
 | SFX-002 | 浮漂入水 | small float plopping into calm water | |
