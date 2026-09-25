@@ -45,7 +45,8 @@ export interface Guest {
 export type ServiceEvent =
   | { type: 'arrive'; guest: Guest }
   | { type: 'order'; guest: Guest }
-  | { type: 'soldOut'; guest: Guest }
+  /** 客人没有能点的菜走了；all = 菜单上的菜全卖完了 */
+  | { type: 'soldOut'; guest: Guest; all: boolean }
   | { type: 'impatient'; guest: Guest }
   | { type: 'paid'; guest: Guest; amount: number }
   | { type: 'gone'; guest: Guest }
@@ -64,7 +65,6 @@ const LEAVE_MINUTES = 3;
 export class Service {
   readonly guests: Guest[] = [];
   open = true;
-  soldOut = false;
   served = 0;
   earned = 0;
   repGained = 0;
@@ -84,6 +84,14 @@ export class Service {
     private readonly earn: (amount: number) => void,
   ) {
     this.seatCount = data.restaurant.tables * data.restaurant.seatsPerTable;
+  }
+
+  /**
+   * 菜单上的菜全都做不出来了（除掉已经预留给别的客人的材料）。
+   * 每次现算：等不及走掉的客人会把预留的材料还回来，又能接着卖。
+   */
+  get soldOut(): boolean {
+    return !this.menu.some((r) => reserve(r, this.pantry, cloneReserved(this.reserved)) !== null);
   }
 
   private get menu(): Recipe[] {
@@ -170,10 +178,9 @@ export class Service {
         reserve(r, this.pantry, cloneReserved(this.reserved)) !== null,
     );
     if (options.length === 0) {
-      this.soldOut = !this.menu.some((r) => reserve(r, this.pantry, cloneReserved(this.reserved)));
       g.happy = false;
       this.setState(g, 'leaving');
-      return { type: 'soldOut', guest: g };
+      return { type: 'soldOut', guest: g, all: this.soldOut };
     }
     const liked = options.filter((r) => g.kind.likes.includes(r.id));
     const recipe =

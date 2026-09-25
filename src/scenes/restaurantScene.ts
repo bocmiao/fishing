@@ -210,6 +210,8 @@ export class RestaurantScene extends Scene {
     const state = this.ctx.state;
     if (!this.canOpen()) return;
     state.restaurant.servedDay = state.clock.day;
+    // 从现在起按分钟推进营业（之前在店里待着的时间不算）
+    this.lastMinute = state.clock.minute;
     this.service = new Service(
       state.data,
       state.restaurant,
@@ -241,8 +243,8 @@ export class RestaurantScene extends Scene {
           this.guests.get(e.guest.id)?.sprite.setBubble(e.guest.recipe!.name, 'order');
           break;
         case 'soldOut':
-          this.guests.get(e.guest.id)?.sprite.setBubble('卖完啦？', 'sad');
-          this.toast('菜单上的菜都卖完了，今晚不再进客人', 'info');
+          this.guests.get(e.guest.id)?.sprite.setBubble(e.all ? '卖完啦？' : '没有想吃的', 'sad');
+          if (e.all) this.toast('菜单上的菜都卖完了，暂时不进客人', 'info');
           break;
         case 'impatient':
           this.guests.get(e.guest.id)?.sprite.setBubble('下次再来', 'sad');

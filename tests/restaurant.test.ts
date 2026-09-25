@@ -198,3 +198,16 @@ describe('鱼摊和杂货铺', () => {
     expect(loaded.restaurant.reputation).toBe(7.5);
   });
 });
+
+describe('卖完了又有了', () => {
+  it('客人等不及走掉、还回预留的材料后，又能接着进客人', () => {
+    const state = new GameState(data, 50);
+    state.inventory.take('corn', state.inventory.count('corn'));
+    state.inventory.add('corn', 6);
+    state.setMenu(['corn_cake']);
+    // 没人做菜：两位客人点完就把玉米预留光了，等不及走了以后又能进新客人
+    const { events } = runEvening(state, 50, false);
+    const orders = events.filter((e) => e.type === 'order').length;
+    expect(orders).toBeGreaterThan(2);
+  });
+});

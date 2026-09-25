@@ -186,7 +186,7 @@ export class PondScene extends Scene {
     this.pushPondUi();
     if (state.keepNet.length > 0) {
       this.toast(`鱼护里有 ${state.keepNet.length} 条鱼，可以放进塘里养`, 'info');
-    } else if (state.pond.every((f) => f.speciesId === null)) {
+    } else if (state.pond.every((f) => f.speciesId === null) && state.clock.day < 2) {
       this.toast('塘里只有外公留下的两条锦鲤……去屋后小溪钓些鱼回来养吧', 'info');
     }
   }
