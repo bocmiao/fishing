@@ -34,7 +34,21 @@ export const PALETTE = {
   leafDark: 0x4f7a3a,
   wheat: 0xd9b76a,
   worm: 0xd98c7a,
+  // 小馆
+  woodLight: 0xa3825c,
+  wood: 0x8d6c4a,
+  woodDark: 0x5e4632,
+  woodShadow: 0x3f2f22,
+  iron: 0x3a3f3e,
+  lanternGlow: 0xf2c27b,
 } as const;
+
+export type PaletteKey = keyof typeof PALETTE;
+
+/** 配置表里写颜色名（例如 "straw"），这里换成色值；不认识的名字用墨黑 */
+export function paletteColor(name: string): number {
+  return (PALETTE as Record<string, number>)[name] ?? PALETTE.ink;
+}
 
 export type Rgb = readonly [number, number, number];
 

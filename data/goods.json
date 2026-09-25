@@ -6,7 +6,12 @@
     { "id": "tofu", "name": "豆腐", "note": "鲫鱼豆腐汤、泥鳅钻豆腐都要用。", "price": 5 },
     { "id": "scallion", "name": "葱", "note": "红烧鱼少不了一把葱。", "price": 2 },
     { "id": "greens", "name": "青菜", "note": "清炒一盘，或者煮进鱼汤面里。", "price": 2 },
-    { "id": "compost", "name": "堆肥", "note": "小馆的鱼杂和剩菜沤出来的，施在地里长得快。", "price": 0 }
+    {
+      "id": "compost",
+      "name": "堆肥",
+      "note": "小馆的鱼杂和剩菜沤出来的，施在地里长得快。",
+      "price": 0
+    }
   ],
   "crafts": [
     {

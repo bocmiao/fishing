@@ -1,7 +1,15 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { GameCommand } from '../app/commands';
 import type { Store } from '../app/store';
-import type { CatchCardUi, FarmUi, FishingUi, PondUi, UiState } from './uiState';
+import type {
+  CatchCardUi,
+  FarmUi,
+  FishingUi,
+  PondUi,
+  RestaurantUi,
+  ShopFishUi,
+  UiState,
+} from './uiState';
 
 type Send = (cmd: GameCommand) => void;
 
@@ -22,6 +30,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
       {scene === 'farm' && <FarmHud store={store} send={send} />}
+      {scene === 'restaurant' && <RestaurantHud store={store} send={send} />}
       <ToastView store={store} />
       {debug && <DebugPanel store={store} />}
       {tuningOpen && <TuningPanel store={store} send={send} />}
@@ -340,6 +349,300 @@ function CraftPanel({ farm, send }: { farm: FarmUi; send: Send }) {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- 小馆
+
+type RestaurantPanel = 'menu' | 'tank' | 'shop' | 'stall' | null;
+
+function RestaurantHud({ store, send }: { store: Store<UiState>; send: Send }) {
+  const r = useUi(store, (s) => s.restaurant);
+  const money = useUi(store, (s) => s.money);
+  const [panel, setPanel] = useState<RestaurantPanel>(null);
+  if (!r) return null;
+  const toggle = (p: RestaurantPanel) => setPanel(panel === p ? null : p);
+  return (
+    <>
+      <div className={`service-bar card is-${r.status}`}>
+        <span>{r.statusText}</span>
+        <span className="service-rep">口碑 {r.reputation}</span>
+      </div>
+      {r.orders.length > 0 && (
+        <div className="orders">
+          {r.orders.map((o) => (
+            <button
+              key={o.guestId}
+              className={`order card${o.cooking ? ' is-cooking' : ''}`}
+              onClick={() => send({ type: 'cookFor', guestId: o.guestId })}
+            >
+              <b>{o.dish}</b>
+              <span>{o.cooking ? '做着呢' : o.guest}</span>
+              <div className="order-patience">
+                <div style={{ width: `${Math.round(o.patience * 100)}%` }} />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+      <CookingPanel store={store} send={send} />
+      {r.status === 'prep' && (
+        <div className="open-actions card">
+          <button
+            className="primary"
+            disabled={!r.canOpen}
+            onClick={() => send({ type: 'openShop' })}
+          >
+            开门营业
+          </button>
+          {r.canSkip && (
+            <button onClick={() => send({ type: 'skipToEvening' })}>在店里忙到傍晚</button>
+          )}
+          <label className="helper-toggle">
+            <input
+              type="checkbox"
+              checked={r.helper}
+              onChange={() => send({ type: 'toggleHelper' })}
+            />
+            自己不开门的日子，让小满代班
+          </label>
+        </div>
+      )}
+      <div className="restaurant-tabs">
+        <button
+          className={`card${panel === 'menu' ? ' is-active' : ''}`}
+          onClick={() => toggle('menu')}
+        >
+          菜单
+        </button>
+        <button
+          className={`card${panel === 'tank' ? ' is-active' : ''}`}
+          onClick={() => toggle('tank')}
+        >
+          活鱼缸 {r.tank.length}/{r.tankCapacity}
+        </button>
+        <button
+          className={`card${panel === 'shop' ? ' is-active' : ''}`}
+          onClick={() => toggle('shop')}
+        >
+          阿婆杂货铺
+        </button>
+        <button
+          className={`card${panel === 'stall' ? ' is-active' : ''}`}
+          onClick={() => toggle('stall')}
+        >
+          周叔鱼摊
+        </button>
+      </div>
+      {panel === 'menu' && <MenuPanel r={r} send={send} />}
+      {panel === 'tank' && <TankPanel r={r} send={send} />}
+      {panel === 'shop' && <ShopPanel r={r} money={money} send={send} />}
+      {panel === 'stall' && <StallPanel r={r} send={send} />}
+    </>
+  );
+}
+
+function MenuPanel({ r, send }: { r: RestaurantUi; send: Send }) {
+  const onMenu = r.menu.filter((m) => m.onMenu).map((m) => m.id);
+  const locked = r.status === 'open';
+  const toggle = (id: string) =>
+    send({
+      type: 'setMenu',
+      recipeIds: onMenu.includes(id) ? onMenu.filter((x) => x !== id) : [...onMenu, id],
+    });
+  return (
+    <div className="keepnet-panel card restaurant-panel">
+      <div className="keepnet-panel-title">
+        菜单 {onMenu.length}/{r.menuSize}
+        <span>{locked ? '营业中不能改' : '客人只点菜单上、现在做得出来的菜'}</span>
+      </div>
+      <ul>
+        {r.menu.map((m) => (
+          <li key={m.id} title={m.note}>
+            <div className="keepnet-fish">
+              <b>
+                {m.name} <em>¥{m.price}</em>
+              </b>
+              <span>
+                {m.ingredients} · {m.servings > 0 ? `够做 ${m.servings} 份` : '材料不够'}
+              </span>
+            </div>
+            <button
+              className={m.onMenu ? '' : 'primary'}
+              disabled={locked || (!m.onMenu && onMenu.length >= r.menuSize)}
+              onClick={() => toggle(m.id)}
+            >
+              {m.onMenu ? '撤下' : '上菜单'}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FishRow({
+  f,
+  action,
+  onClick,
+  disabled,
+}: {
+  f: ShopFishUi;
+  action: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <li>
+      <div className="keepnet-fish">
+        <b>{f.name}</b>
+        <span>{f.weightText}</span>
+      </div>
+      <button className="primary" disabled={disabled} onClick={onClick}>
+        {action}
+      </button>
+    </li>
+  );
+}
+
+function TankPanel({ r, send }: { r: RestaurantUi; send: Send }) {
+  const full = r.tank.length >= r.tankCapacity;
+  return (
+    <div className="keepnet-panel card restaurant-panel">
+      <div className="keepnet-panel-title">
+        活鱼缸 {r.tank.length}/{r.tankCapacity}
+        <span>做菜的鱼都从缸里捞</span>
+      </div>
+      <ul>
+        {r.tank.length === 0 && <li className="empty-row">缸里还没有鱼</li>}
+        {r.tank.map((f) => (
+          <li key={f.uid}>
+            <div className="keepnet-fish">
+              <b>{f.name}</b>
+              <span>{f.weightText}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="keepnet-panel-title stock-title">
+        鱼护<span>{r.keepNet.length} 条</span>
+      </div>
+      <ul>
+        {r.keepNet.length === 0 && <li className="empty-row">鱼护是空的，去小溪钓点鱼吧</li>}
+        {r.keepNet.map((f) => (
+          <FishRow
+            key={f.uid}
+            f={f}
+            action="放进缸里"
+            disabled={full}
+            onClick={() => send({ type: 'toTank', uid: f.uid })}
+          />
+        ))}
+      </ul>
+      {r.keepNet.length > 1 && !full && (
+        <button
+          className="primary keepnet-all"
+          onClick={() => send({ type: 'toTank', uid: 'all' })}
+        >
+          全部放进缸里
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ShopPanel({ r, money, send }: { r: RestaurantUi; money: number; send: Send }) {
+  return (
+    <div className="keepnet-panel card restaurant-panel">
+      <div className="keepnet-panel-title">
+        阿婆杂货铺<span>身上有 ¥{money}</span>
+      </div>
+      <ul>
+        {r.shop.map((item) => (
+          <li key={item.id}>
+            <div className="keepnet-fish">
+              <b>
+                {item.name} <em>¥{item.price}</em>
+              </b>
+              <span>家里有 {item.owned}</span>
+            </div>
+            <button
+              disabled={money < item.price}
+              onClick={() => send({ type: 'buy', itemId: item.id, count: 1 })}
+            >
+              买 1
+            </button>
+            <button
+              className="primary"
+              disabled={money < item.price * 5}
+              onClick={() => send({ type: 'buy', itemId: item.id, count: 5 })}
+            >
+              买 5
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StallPanel({ r, send }: { r: RestaurantUi; send: Send }) {
+  const all = [
+    ...r.keepNet.map((f) => ({ ...f, from: '鱼护' })),
+    ...r.tank.map((f) => ({ ...f, from: '缸里' })),
+  ];
+  return (
+    <div className="keepnet-panel card restaurant-panel">
+      <div className="keepnet-panel-title">
+        周叔鱼摊<span>卖鱼不如做成菜值钱，但来钱快</span>
+      </div>
+      <ul>
+        {all.length === 0 && <li className="empty-row">没有鱼可卖</li>}
+        {all.map((f) => (
+          <li key={f.uid}>
+            <div className="keepnet-fish">
+              <b>{f.name}</b>
+              <span>
+                {f.weightText} · {f.from}
+              </span>
+            </div>
+            <button className="primary" onClick={() => send({ type: 'sellFish', uid: f.uid })}>
+              卖 ¥{f.price}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CookingPanel({ store, send }: { store: Store<UiState>; send: Send }) {
+  const c = useUi(store, (s) => s.cooking);
+  if (!c) return null;
+  const pct = (v: number) => `${Math.max(0, Math.min(1, v)) * 100}%`;
+  return (
+    <div className="cooking card" onPointerDown={() => send({ type: 'cookHit' })}>
+      <div className="cooking-title">
+        {c.dish}
+        <span>给{c.guest}</span>
+      </div>
+      <div className="cooking-steps">
+        {c.steps.map((name, i) => (
+          <span key={name} className={i === c.step ? 'is-current' : i < c.step ? 'is-done' : ''}>
+            {name}
+            {i < c.step && <b>{c.results[i]! >= 0.9 ? '★' : c.results[i]! >= 0.5 ? '☆' : '·'}</b>}
+          </span>
+        ))}
+      </div>
+      <div className="cooking-bar">
+        <div
+          className="cooking-zone"
+          style={{ left: pct(c.zone[0]), width: pct(c.zone[1] - c.zone[0]) }}
+        />
+        <div className="cooking-pointer" style={{ left: pct(c.pointer) }} />
+      </div>
+      <div className="cooking-hint">指针走到绿色里，按空格（或点一下）</div>
     </div>
   );
 }

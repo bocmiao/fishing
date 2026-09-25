@@ -1,0 +1,122 @@
+{
+  "recipes": [
+    {
+      "id": "braised_crucian",
+      "name": "红烧鲫鱼",
+      "fish": {
+        "species": ["crucian"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 26,
+      "note": "开店第一道菜，外公的老做法。",
+      "color": "woodLight"
+    },
+    {
+      "id": "crucian_tofu_soup",
+      "name": "鲫鱼豆腐汤",
+      "fish": {
+        "species": ["crucian"],
+        "count": 1
+      },
+      "goods": {
+        "tofu": 1
+      },
+      "price": 32,
+      "note": "鱼越大，汤越白。",
+      "color": "cream"
+    },
+    {
+      "id": "steamed_hooksnout",
+      "name": "清蒸马口鱼",
+      "fish": {
+        "species": ["hooksnout"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 45,
+      "note": "溪里的马口鱼肉细，清蒸最好。",
+      "color": "fishWhite"
+    },
+    {
+      "id": "fried_minnows",
+      "name": "椒盐小鱼干",
+      "fish": {
+        "species": ["stone_moroko", "sharpbelly"],
+        "count": 3
+      },
+      "goods": {},
+      "price": 20,
+      "note": "小鱼单卖不值钱，炸成小鱼干却是下酒菜。",
+      "color": "gold"
+    },
+    {
+      "id": "loach_tofu",
+      "name": "泥鳅钻豆腐",
+      "fish": {
+        "species": ["loach"],
+        "count": 2
+      },
+      "goods": {
+        "tofu": 1
+      },
+      "price": 34,
+      "note": "地方老菜，泥鳅钻进豆腐里。",
+      "color": "cream"
+    },
+    {
+      "id": "eel_pot",
+      "name": "黄鳝煲",
+      "fish": {
+        "species": ["swamp_eel"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 70,
+      "note": "夜钓的奖励，村长最爱。",
+      "color": "woodDark"
+    },
+    {
+      "id": "fish_noodles",
+      "name": "鱼汤面",
+      "fish": {
+        "species": [],
+        "count": 1
+      },
+      "goods": {
+        "flour": 1
+      },
+      "price": 22,
+      "note": "什么鱼都能熬汤，把零碎的鱼用掉。",
+      "color": "cream"
+    },
+    {
+      "id": "corn_cake",
+      "name": "玉米烙",
+      "fish": null,
+      "goods": {
+        "corn": 3
+      },
+      "price": 12,
+      "note": "不用鱼的甜点，给不吃鱼的客人。",
+      "color": "gold"
+    },
+    {
+      "id": "stir_greens",
+      "name": "清炒青菜",
+      "fish": null,
+      "goods": {
+        "greens": 2
+      },
+      "price": 9,
+      "note": "小馆的配菜。",
+      "color": "leaf"
+    }
+  ]
+}

@@ -107,6 +107,74 @@ export interface FarmUi {
   hint: string;
 }
 
+/** 小馆：一条鱼（缸里或鱼护里） */
+export interface ShopFishUi {
+  uid: number;
+  name: string;
+  weightText: string;
+  /** 卖给周叔的价钱 */
+  price: number;
+}
+
+export interface MenuItemUi {
+  id: string;
+  name: string;
+  note: string;
+  ingredients: string;
+  price: number;
+  onMenu: boolean;
+  /** 现在的材料够做几份 */
+  servings: number;
+}
+
+export interface ShopItemUi {
+  id: string;
+  name: string;
+  price: number;
+  owned: number;
+}
+
+/** 等菜的客人（界面上的点菜单） */
+export interface OrderUi {
+  guestId: number;
+  guest: string;
+  dish: string;
+  /** 耐心还剩多少 0~1 */
+  patience: number;
+  cooking: boolean;
+}
+
+export interface RestaurantUi {
+  /** prep = 还没开门，open = 营业中，closed = 今天营业过了 */
+  status: 'prep' | 'open' | 'closed';
+  statusText: string;
+  /** 现在能不能开门 */
+  canOpen: boolean;
+  /** 还没到傍晚：可以在店里忙到开门 */
+  canSkip: boolean;
+  helper: boolean;
+  reputation: number;
+  menu: MenuItemUi[];
+  menuSize: number;
+  tank: ShopFishUi[];
+  tankCapacity: number;
+  keepNet: ShopFishUi[];
+  shop: ShopItemUi[];
+  orders: OrderUi[];
+}
+
+/** 做菜小游戏 */
+export interface CookingUi {
+  dish: string;
+  guest: string;
+  steps: string[];
+  step: number;
+  /** 指针 0~1 */
+  pointer: number;
+  zone: [number, number];
+  results: number[];
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -134,6 +202,8 @@ export interface UiState {
 
   pond: PondUi | null;
   farm: FarmUi | null;
+  restaurant: RestaurantUi | null;
+  cooking: CookingUi | null;
   fishing: FishingUi | null;
   fightActive: boolean;
   tension: number;
@@ -175,6 +245,8 @@ export const initialUiState: UiState = {
   sense: false,
   pond: null,
   farm: null,
+  restaurant: null,
+  cooking: null,
   fishing: null,
   fightActive: false,
   tension: 0,

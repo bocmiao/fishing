@@ -1,6 +1,6 @@
 import { seedId, type GameData } from './data/gameData';
 import type { Weather } from './data/schema';
-import type { FishInstance } from './fishing/catchRoll';
+import { fishPrice, type FishInstance } from './fishing/catchRoll';
 import {
   growPlots,
   newPlot,
@@ -10,6 +10,12 @@ import {
   type Plot,
 } from './farm/farm';
 import { Inventory } from './inventory';
+import {
+  newRestaurant,
+  runHelper,
+  type HelperResult,
+  type RestaurantState,
+} from './restaurant/restaurant';
 import { hashString, Rng } from './rng/rng';
 import { GameClock, type Season } from './time/clock';
 
@@ -83,6 +89,10 @@ export interface DayStats {
   harvested: number;
   earned: number;
   spent: number;
+  /** 小馆接待了几位客人（自己掌勺的） */
+  guests: number;
+  /** 小馆的收入（自己掌勺 + 小满代班） */
+  restaurantEarned: number;
 }
 
 /** 一天结束时给玩家看的小结 */
@@ -94,10 +104,21 @@ export interface DaySummary {
   ripened: number;
   /** 明天的天气 */
   weather: Weather;
+  /** 小满代班的结果（这天小馆没自己开门时） */
+  helper: HelperResult | null;
 }
 
 function emptyStats(): DayStats {
-  return { caught: 0, kept: 0, worms: 0, harvested: 0, earned: 0, spent: 0 };
+  return {
+    caught: 0,
+    kept: 0,
+    worms: 0,
+    harvested: 0,
+    earned: 0,
+    spent: 0,
+    guests: 0,
+    restaurantEarned: 0,
+  };
 }
 
 export interface CatchRecordResult {
@@ -118,6 +139,8 @@ export class GameState {
   readonly inventory: Inventory;
   /** 菜地的每一块地 */
   readonly plots: Plot[] = [];
+  /** 喵记小馆：活鱼缸、菜单、口碑 */
+  readonly restaurant: RestaurantState = newRestaurant();
   /** 现在在哪（地点 id，也是画面名） */
   place: string;
   today: DayStats = emptyStats();
@@ -311,9 +334,73 @@ export class GameState {
     return true;
   }
 
+  // ---------------------------------------------------------------- 小馆
+
+  /** 鱼护里的鱼放进小馆的活鱼缸；缸满了返回 false */
+  toTank(uid: number): boolean {
+    const r = this.restaurant;
+    if (r.tank.length >= this.data.restaurant.tankCapacity) return false;
+    const i = this.keepNet.findIndex((f) => f.uid === uid);
+    if (i < 0) return false;
+    r.tank.push(...this.keepNet.splice(i, 1));
+    return true;
+  }
+
+  /** 卖给周叔（鱼护里或者缸里的鱼），返回卖了多少钱；找不到这条鱼返回 0 */
+  sellFish(uid: number): number {
+    for (const list of [this.keepNet, this.restaurant.tank]) {
+      const i = list.findIndex((f) => f.uid === uid);
+      if (i < 0) continue;
+      const [fish] = list.splice(i, 1) as [CaughtFish];
+      const species = this.data.speciesById.get(fish.speciesId);
+      const price = species ? fishPrice(species, fish) : 0;
+      this.earn(price);
+      return price;
+    }
+    return 0;
+  }
+
+  /** 在阿婆的杂货铺买东西（饵料、种子）；钱不够返回 false */
+  buy(itemId: string, count = 1): boolean {
+    const price = this.data.itemPrices.get(itemId);
+    if (price === undefined || count <= 0 || !this.spend(price * count)) return false;
+    this.inventory.add(itemId, count);
+    return true;
+  }
+
+  setMenu(recipeIds: string[]): void {
+    const ids = recipeIds.filter(
+      (id, i) => this.data.recipeById.has(id) && recipeIds.indexOf(id) === i,
+    );
+    this.restaurant.menu = ids.slice(0, this.data.restaurant.menuSize);
+  }
+
+  /** 今天小馆营业过没有（自己开门或小满代班） */
+  get servedToday(): boolean {
+    return this.restaurant.servedDay === this.clock.day;
+  }
+
+  /**
+   * 过了打烊时间、今天还没营业过：小满代班（开着代班、定了菜单才会）。
+   * 返回代班的结果；不需要代班返回 null。
+   */
+  runHelperIfDue(rng: Rng, force = false): HelperResult | null {
+    const r = this.restaurant;
+    if (this.servedToday) return null;
+    if (!force && this.clock.minute < this.data.restaurant.closeMinute) return null;
+    r.servedDay = this.clock.day;
+    if (!r.helper || r.menu.length === 0) return null;
+    const result = runHelper(r, { inventory: this.inventory, tank: r.tank }, this.data, rng);
+    this.earn(result.earned);
+    this.today.restaurantEarned += result.earned;
+    return result;
+  }
+
   /** 睡觉：夜里作物生长，进入新的一天，重新掷天气，回到家里。返回这一天的小结 */
   sleep(): DaySummary {
     const day = this.clock.day;
+    // 早早睡了、小馆还没营业：小满照样去开门
+    const helper = this.runHelperIfDue(this.rng, true);
     const rained = this.weather === 'rain';
     const ripened = growPlots(
       this.plots,
@@ -323,7 +410,7 @@ export class GameState {
     this.clock.sleep();
     this.weather = rollWeather(this.clock.season, this.rng);
     this.place = this.data.homePlace;
-    const summary: DaySummary = { day, stats: this.today, ripened, weather: this.weather };
+    const summary: DaySummary = { day, stats: this.today, ripened, weather: this.weather, helper };
     this.today = emptyStats();
     this.lastSummary = summary;
     return summary;

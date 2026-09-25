@@ -19,6 +19,21 @@ export type GameCommand =
   | { type: 'selectTool'; toolId: string }
   /** 在家里加工（磨面粉、和面饵、点豆腐） */
   | { type: 'craft'; craftId: string }
+  /** 小馆：定菜单 */
+  | { type: 'setMenu'; recipeIds: string[] }
+  /** 小馆：鱼护里的鱼放进活鱼缸 */
+  | { type: 'toTank'; uid: number | 'all' }
+  /** 周叔的鱼摊：卖鱼 */
+  | { type: 'sellFish'; uid: number }
+  /** 阿婆的杂货铺：买东西 */
+  | { type: 'buy'; itemId: string; count: number }
+  /** 小馆：开门营业 / 在店里忙到傍晚 / 开关小满代班 */
+  | { type: 'openShop' }
+  | { type: 'skipToEvening' }
+  | { type: 'toggleHelper' }
+  /** 小馆：给这位客人做菜；做菜小游戏里按一下 */
+  | { type: 'cookFor'; guestId: number }
+  | { type: 'cookHit' }
   /** 鱼护里的鱼放进自家鱼塘（all = 能放的全放） */
   | { type: 'releaseToPond'; uid: number | 'all' }
   /** 鱼护里的鱼放生 */

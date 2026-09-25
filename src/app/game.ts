@@ -31,6 +31,8 @@ export class Game {
   private readonly loaded: boolean;
   private saveTimer = 0;
   private summaryId = 0;
+  private toastId = 100_000;
+  private helperRng!: Rng;
   /** 所有画面都放在这里，按窗口缩放 */
   private readonly world = new Container();
   private scene: Scene | null = null;
@@ -77,6 +79,7 @@ export class Game {
     this.app.stage.addChild(this.world);
     this.app.stage.eventMode = 'static';
 
+    this.helperRng = new Rng(this.params.seed).fork('helper');
     this.ctx = {
       app: this.app,
       params: this.params,
@@ -189,6 +192,17 @@ export class Game {
       if (this.sceneName !== state.data.homePlace) void this.goto(state.data.homePlace);
       else this.save();
     }
+    // 到了打烊时间，今天还没营业：小满代班
+    const helper = state.runHelperIfDue(this.helperRng);
+    if (helper && helper.dishes.length > 0) {
+      this.ui.set({
+        toast: {
+          id: ++this.toastId,
+          text: `小满代班：卖了 ${helper.dishes.length} 道菜，收入 ¥${helper.earned}`,
+          tone: 'good',
+        },
+      });
+    }
     this.saveTimer += dt;
     if (this.saveTimer > AUTOSAVE_SECONDS) this.save();
     if (this.ui.get().money !== state.money) this.ui.set({ money: state.money });
@@ -203,6 +217,12 @@ export class Game {
     if (s.caught > 0) lines.push(`钓到 ${s.caught} 条鱼，放进鱼护 ${s.kept} 条`);
     if (s.worms > 0) lines.push(`在菜地挖到 ${s.worms} 条蚯蚓`);
     if (s.harvested > 0) lines.push(`收获了 ${s.harvested} 份作物`);
+    if (s.guests > 0) lines.push(`小馆接待了 ${s.guests} 位客人`);
+    if (s.restaurantEarned > 0) lines.push(`小馆一共收入 ¥${s.restaurantEarned}`);
+    const helper = summary.helper;
+    if (helper && helper.dishes.length > 0) {
+      lines.push(`小满代班卖了 ${helper.dishes.length} 道菜，收入 ¥${helper.earned}`);
+    }
     if (s.earned > 0 || s.spent > 0) lines.push(`进账 ¥${s.earned}，花销 ¥${s.spent}`);
     if (summary.ripened > 0) lines.push(`夜里有 ${summary.ripened} 块地的作物熟了`);
     if (lines.length === 0) lines.push('安安静静的一天');

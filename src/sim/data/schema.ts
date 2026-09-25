@@ -269,3 +269,74 @@ export const PlacesSchema = z.object({
 });
 export type Places = z.infer<typeof PlacesSchema>;
 export type Place = Places['places'][number];
+
+export const RecipeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** 要用的鱼：species 为空表示什么鱼都行；null 表示不用鱼 */
+  fish: z.object({ species: z.array(z.string()), count: z.number().int().positive() }).nullable(),
+  /** 要用的配料（库存里的东西） */
+  goods: z.record(z.string(), z.number().int().positive()),
+  /** 一份的基础价（元） */
+  price: z.number().positive(),
+  note: z.string(),
+  /** 盘子里菜的颜色（palette.ts 里的颜色名） */
+  color: z.string().default('cream'),
+});
+export type Recipe = z.infer<typeof RecipeSchema>;
+
+/** 界面和画面用的颜色名，对应 palette.ts 里的 PALETTE */
+const paletteKey = z.string();
+
+export const RestaurantSchema = z.object({
+  name: z.string(),
+  /** 营业时间（当天从 0:00 起的分钟） */
+  openMinute: z.number(),
+  closeMinute: z.number(),
+  /** 过了这个点不再进新客人 */
+  lastOrderMinute: z.number(),
+  tankCapacity: z.number().int().positive(),
+  menuSize: z.number().int().positive(),
+  tables: z.number().int().positive(),
+  seatsPerTable: z.number().int().positive(),
+  /** 口碑为 0 时，客人之间隔几分钟来一位 [最短, 最长] */
+  arrivalMinutes: z.tuple([z.number().positive(), z.number().positive()]),
+  /** 点了菜最多等几分钟 */
+  patienceMinutes: z.number().positive(),
+  eatMinutes: z.number().positive(),
+  /** 小满代班：收入打几折、菜做得怎么样、一晚上卖几道 */
+  helper: z.object({
+    share: z.number().min(0).max(1),
+    quality: z.number().min(0).max(1),
+    dishes: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+  }),
+  /** 每做一道鱼菜，攒下多少堆肥（鱼杂和剩菜） */
+  compostPerFishDish: z.number().min(0),
+  /** 做菜小游戏：每一步指针的速度（来回一趟每秒几次）和好区的宽度（0~1） */
+  cooking: z.object({
+    steps: z
+      .array(
+        z.object({ name: z.string(), speed: z.number().positive(), zone: z.number().positive() }),
+      )
+      .min(1),
+  }),
+  guests: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        animal: z.enum(['rabbit', 'duck', 'dog', 'otter', 'buffalo', 'fox']),
+        color: paletteKey,
+        accent: paletteKey,
+        likes: z.array(z.string()),
+        /** 不吃鱼 */
+        vegetarian: z.boolean(),
+        /** 口碑到多少才会来 */
+        minReputation: z.number().min(0),
+        weight: z.number().positive(),
+      }),
+    )
+    .min(1),
+});
+export type RestaurantConfig = z.infer<typeof RestaurantSchema>;
+export type GuestKind = RestaurantConfig['guests'][number];

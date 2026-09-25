@@ -6,6 +6,8 @@ import goodsJson from '../../../data/goods.json';
 import itemsJson from '../../../data/items.json';
 import placesJson from '../../../data/places.json';
 import pondJson from '../../../data/pond.json';
+import recipesJson from '../../../data/recipes.json';
+import restaurantJson from '../../../data/restaurant.json';
 import spotsJson from '../../../data/spots.json';
 import {
   CropSchema,
@@ -15,6 +17,8 @@ import {
   ItemsSchema,
   PlacesSchema,
   PondSchema,
+  RecipeSchema,
+  RestaurantSchema,
   SpotSchema,
   type Area,
   type Craft,
@@ -24,6 +28,8 @@ import {
   type Items,
   type Place,
   type PondConfig,
+  type Recipe,
+  type RestaurantConfig,
   type Spot,
 } from './schema';
 
@@ -41,6 +47,9 @@ export interface GameData {
   places: Place[];
   placeById: Map<string, Place>;
   homePlace: string;
+  recipes: Recipe[];
+  recipeById: Map<string, Recipe>;
+  restaurant: RestaurantConfig;
   /** 库存里每种东西的名字（饵料、货物、种子） */
   itemNames: Map<string, string>;
   /** 杂货铺的价格 */
@@ -62,6 +71,8 @@ export interface RawGameData {
   crops: unknown;
   farm: unknown;
   places: unknown;
+  recipes: unknown;
+  restaurant: unknown;
 }
 
 /** 校验并整理配置表；出错时抛出带路径的错误信息 */
@@ -74,11 +85,14 @@ export function parseGameData(raw: RawGameData): GameData {
   const crops = z.object({ crops: z.array(CropSchema) }).parse(raw.crops).crops;
   const farm = FarmSchema.parse(raw.farm);
   const places = PlacesSchema.parse(raw.places);
+  const recipes = z.object({ recipes: z.array(RecipeSchema) }).parse(raw.recipes).recipes;
+  const restaurant = RestaurantSchema.parse(raw.restaurant);
 
   const speciesById = unique(species, '鱼种');
   const spotById = unique(spots, '钓点');
   const cropById = unique(crops, '作物');
   const placeById = unique(places.places, '地点');
+  const recipeById = unique(recipes, '菜谱');
 
   const itemNames = new Map<string, string>();
   const itemPrices = new Map<string, number>();
@@ -115,6 +129,19 @@ export function parseGameData(raw: RawGameData): GameData {
     }
   }
   if (!placeById.has(places.home)) throw new Error(`家 ${places.home} 不在地点表里`);
+  for (const r of recipes) {
+    for (const id of r.fish?.species ?? []) {
+      if (!speciesById.has(id)) throw new Error(`菜谱 ${r.id} 用到了不存在的鱼 ${id}`);
+    }
+    for (const id of Object.keys(r.goods)) {
+      if (!itemNames.has(id)) throw new Error(`菜谱 ${r.id} 用到了不存在的配料 ${id}`);
+    }
+  }
+  for (const g of restaurant.guests) {
+    for (const id of g.likes) {
+      if (!recipeById.has(id)) throw new Error(`客人 ${g.id} 爱吃的 ${id} 不在菜谱里`);
+    }
+  }
 
   const travel = places.travel;
   const travelMinutes = (from: Area, to: Area): number => {
@@ -138,6 +165,9 @@ export function parseGameData(raw: RawGameData): GameData {
     places: places.places,
     placeById,
     homePlace: places.home,
+    recipes,
+    recipeById,
+    restaurant,
     itemNames,
     itemPrices,
     travelMinutes,
@@ -165,5 +195,7 @@ export function getGameData(): GameData {
     crops: cropsJson,
     farm: farmJson,
     places: placesJson,
+    recipes: recipesJson,
+    restaurant: restaurantJson,
   }));
 }

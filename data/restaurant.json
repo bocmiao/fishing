@@ -1,0 +1,90 @@
+{
+  "name": "喵记小馆",
+  "openMinute": 1020,
+  "closeMinute": 1200,
+  "lastOrderMinute": 1180,
+  "tankCapacity": 10,
+  "menuSize": 4,
+  "tables": 4,
+  "seatsPerTable": 2,
+  "arrivalMinutes": [8, 15],
+  "patienceMinutes": 45,
+  "eatMinutes": 16,
+  "helper": { "share": 0.7, "quality": 0.6, "dishes": [3, 5] },
+  "compostPerFishDish": 0.5,
+  "cooking": {
+    "steps": [
+      { "name": "切配", "speed": 1.1, "zone": 0.24 },
+      { "name": "掂锅", "speed": 1.5, "zone": 0.18 },
+      { "name": "装盘", "speed": 0.9, "zone": 0.28 }
+    ]
+  },
+  "guests": [
+    {
+      "id": "rabbit",
+      "name": "兔子阿白",
+      "animal": "rabbit",
+      "color": "fishWhite",
+      "accent": "pink",
+      "likes": ["corn_cake", "stir_greens"],
+      "vegetarian": true,
+      "minReputation": 0,
+      "weight": 1
+    },
+    {
+      "id": "duck",
+      "name": "鸭子嘎嘎",
+      "animal": "duck",
+      "color": "cream",
+      "accent": "gold",
+      "likes": ["fried_minnows", "fish_noodles"],
+      "vegetarian": false,
+      "minReputation": 0,
+      "weight": 1.4
+    },
+    {
+      "id": "shiba",
+      "name": "小满",
+      "animal": "dog",
+      "color": "straw",
+      "accent": "fishWhite",
+      "likes": ["braised_crucian", "corn_cake"],
+      "vegetarian": false,
+      "minReputation": 0,
+      "weight": 1
+    },
+    {
+      "id": "otter",
+      "name": "周叔",
+      "animal": "otter",
+      "color": "slateBlue",
+      "accent": "cream",
+      "likes": ["crucian_tofu_soup", "loach_tofu"],
+      "vegetarian": false,
+      "minReputation": 5,
+      "weight": 1
+    },
+    {
+      "id": "buffalo",
+      "name": "村长",
+      "animal": "buffalo",
+      "color": "ink",
+      "accent": "straw",
+      "likes": ["eel_pot", "braised_crucian"],
+      "vegetarian": false,
+      "minReputation": 10,
+      "weight": 0.8
+    },
+    {
+      "id": "fox",
+      "name": "美食博主小狐",
+      "animal": "fox",
+      "color": "gold",
+      "accent": "fishWhite",
+      "likes": ["steamed_hooksnout", "eel_pot"],
+      "vegetarian": false,
+      "minReputation": 20,
+      "weight": 0.6
+    }
+  ]
+}

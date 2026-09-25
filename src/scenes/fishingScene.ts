@@ -19,7 +19,7 @@ import {
   strikeQuality,
   type BitePlan,
 } from '../sim/fishing/bite';
-import { formatWeight, rollFish } from '../sim/fishing/catchRoll';
+import { fishPrice, formatWeight, rollFish } from '../sim/fishing/catchRoll';
 import { DEFAULT_FIGHT_PARAMS, Fight, type FightParams } from '../sim/fishing/fight';
 import { ReelCrank } from '../sim/fishing/reel';
 import { pickSpecies } from '../sim/fishing/spawn';
@@ -769,10 +769,7 @@ export class FishingScene extends Scene {
     const record = state.recordCatch(f.fish);
     const look = speciesLook(f.species, new Rng(f.fish.lookSeed));
     const sp = f.species;
-    const t = (f.fish.weightKg - sp.weightKg.min) / (sp.weightKg.max - sp.weightKg.min || 1);
-    const price = Math.round(
-      sp.price * (0.7 + 0.6 * Math.max(0, Math.min(1.3, t))) * (f.fish.trophy ? 1.5 : 1),
-    );
+    const price = fishPrice(sp, f.fish);
     this.ripples.add(f.x, f.y, 1, 1.4, 6);
     this.pool.remove(f);
     this.landed = f;

@@ -81,3 +81,10 @@ export function formatWeight(weightKg: number): string {
   if (grams < 500) return `${(grams / 50).toFixed(1)} 两`;
   return `${(grams / 500).toFixed(1)} 斤`;
 }
+
+/** 卖给鱼贩的价钱：越接近这种鱼的上限越值钱，大家伙再贵五成 */
+export function fishPrice(species: FishSpecies, fish: FishInstance): number {
+  const { min, max } = species.weightKg;
+  const t = Math.max(0, Math.min(1.3, (fish.weightKg - min) / (max - min || 1)));
+  return Math.round(species.price * (0.7 + 0.6 * t) * (fish.trophy ? 1.5 : 1));
+}

@@ -58,6 +58,18 @@ const StatsSchema = z.object({
   harvested: z.number().default(0),
   earned: z.number().default(0),
   spent: z.number().default(0),
+  guests: z.number().default(0),
+  restaurantEarned: z.number().default(0),
+});
+
+const RestaurantSaveSchema = z.object({
+  tank: z.array(CaughtFishSchema).default([]),
+  menu: z.array(z.string()).default([]),
+  reputation: z.number().default(0),
+  helper: z.boolean().default(true),
+  servedDay: z.number().default(-1),
+  scraps: z.number().default(0),
+  totalGuests: z.number().default(0),
 });
 
 export const SaveSchemaV1 = z.object({
@@ -82,7 +94,8 @@ export const SaveSchemaV1 = z.object({
   rodId: z.string(),
   lineId: z.string(),
   place: z.string(),
-  today: StatsSchema.default({ caught: 0, kept: 0, worms: 0, harvested: 0, earned: 0, spent: 0 }),
+  today: StatsSchema.prefault({}),
+  restaurant: RestaurantSaveSchema.prefault({}),
 });
 export type SaveData = z.infer<typeof SaveSchemaV1>;
 
@@ -105,6 +118,11 @@ export function serialize(state: GameState): SaveData {
     lineId: state.lineId,
     place: state.place,
     today: { ...state.today },
+    restaurant: {
+      ...state.restaurant,
+      tank: state.restaurant.tank.map((f) => ({ ...f })),
+      menu: [...state.restaurant.menu],
+    },
   };
 }
 
@@ -149,7 +167,19 @@ export function restore(data: GameData, raw: unknown): GameState {
   if (data.placeById.has(save.place)) state.place = save.place;
   state.today = { ...save.today };
 
-  const maxUid = Math.max(0, ...state.keepNet.map((f) => f.uid), ...state.pond.map((f) => f.uid));
+  const r = save.restaurant;
+  Object.assign(state.restaurant, {
+    ...r,
+    tank: r.tank.filter((f) => data.speciesById.has(f.speciesId)),
+    menu: r.menu.filter((id) => data.recipeById.has(id)),
+  });
+
+  const maxUid = Math.max(
+    0,
+    ...state.keepNet.map((f) => f.uid),
+    ...state.pond.map((f) => f.uid),
+    ...state.restaurant.tank.map((f) => f.uid),
+  );
   reserveUids(maxUid + 1);
   return state;
 }
