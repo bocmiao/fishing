@@ -18,7 +18,7 @@ npm run build:web    # 网页版：输出 dist-web/page.html + assets，用来�
 npm run shot -- --scene pond --actions "click:900,500;step:2;shot:feed"   # 无头浏览器截图，说明见 tools/screenshot.mjs
 ```
 
-网址参数：`?scene=pond|fishing|farm|restaurant&seed=7&warmup=10&debug=1&fresh=1`（`shot=1` 为截图模式，由截图脚本使用，不读也不写存档）；网页版拿不到网址参数，用 `#fishing` 这样的锚点直接进某个画面，`#new` 从头开始。
+网址参数：`?scene=pond|fishing|lake|farm|restaurant&seed=7&warmup=10&debug=1&fresh=1`（`shot=1` 为截图模式，由截图脚本使用，不读也不写存档）；网页版拿不到网址参数，用 `#fishing` 这样的锚点直接进某个画面，`#new` 从头开始。
 存档写在浏览器 localStorage（`src/app/saveStore.ts`），结构和迁移在 `src/sim/save.ts`。
 游戏内：F3 显示调试信息；钓鱼画面里 F2 打开调参面板（遛鱼参数、跳时间、换天气）。
 
@@ -39,7 +39,7 @@ npm run shot -- --scene fishing --actions "down:900,380;step:0.9;up;evalfile:too
 ```
 src/sim/      逻辑层：纯 TypeScript，不能引用 pixi.js、react 或 DOM
 src/render/   渲染层：PixiJS（水面、鱼、阿喵、特效、占位道具）
-src/scenes/   各个画面（鱼塘、钓鱼、菜地、小馆），组合 sim 和 render
+src/scenes/   各个画面（鱼塘、钓鱼（小溪和荷花湖共用）、菜地、小馆），组合 sim 和 render
 src/ui/       界面层：React，只读状态、只发指令
 src/app/      调度层：游戏循环、画面切换、网址参数
 data/         配置表（JSON）
@@ -52,7 +52,7 @@ assets/raw/   画师和其他 AI 交付的原始素材；处理后的素材放 a
 
 1. **逻辑层（src/sim）不引用任何画面代码**，可以脱离浏览器单独测试。
 2. **不用 `Math.random()`**，统一用 `src/sim/rng/rng.ts` 的 `Rng`（可设种子），保证测试和截图可复现。
-3. **内容写进配置表**（鱼、渔具、钓点、作物、菜谱、客人、地点……），不要写死在代码里。
+3. **内容写进配置表**（鱼、渔具、钓点、作物、菜谱、客人、地点、升级、成就……），不要写死在代码里。
 4. **存档结构一旦发布就要带版本号和迁移函数**。
 5. **颜色从 `src/render/palette.ts` 取**，它和美术指南第 1.2 节保持一致；要改颜色先改文档。
 6. **方案 C 的边界**：画面之间只通过"进入参数"（例如哪个钓点的哪个钓位）交接，不要让钓鱼、鱼塘画面依赖"是怎么来到这里的"。
