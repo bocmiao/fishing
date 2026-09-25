@@ -175,6 +175,26 @@ export interface CookingUi {
   results: number[];
 }
 
+/** 升级面板里的一项 */
+export interface UpgradeUi {
+  id: string;
+  name: string;
+  note: string;
+  /** 效果，例如"鱼护 8 → 12 条" */
+  effect: string;
+  price: number;
+  status: 'owned' | 'available' | 'locked';
+  /** locked 时：要先买哪一项 */
+  requires: string;
+}
+
+export interface UpgradeGroupUi {
+  id: string;
+  name: string;
+  note: string;
+  items: UpgradeUi[];
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -197,6 +217,7 @@ export interface UiState {
   money: number;
   places: PlaceUi[];
   daySummary: DaySummaryUi | null;
+  upgrades: UpgradeGroupUi[];
   /** 胡须感应：附近有少见的鱼 */
   sense: boolean;
 
@@ -242,6 +263,7 @@ export const initialUiState: UiState = {
   money: 0,
   places: [],
   daySummary: null,
+  upgrades: [],
   sense: false,
   pond: null,
   farm: null,

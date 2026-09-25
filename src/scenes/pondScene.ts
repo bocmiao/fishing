@@ -427,6 +427,10 @@ export class PondScene extends Scene {
     }
   }
 
+  override refresh(): void {
+    this.pushPondUi();
+  }
+
   override resize(view: ViewSize): void {
     if (view.width === this.view.width && view.height === this.view.height) return;
     // 简单处理：重新生成池底并更新各层尺寸（鱼和装饰保持原位）

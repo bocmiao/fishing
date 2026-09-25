@@ -30,7 +30,7 @@ npm run shot -- --scene fishing --actions "down:900,380;step:0.9;up;evalfile:too
 ```
 
 `tools/bots/` 里是截图脚本用的小机器人（等咬钩、遛鱼、拨时间、摆菜地 `farm-demo.js`、小馆备货和营业 `restaurant.js`），可以用 `evalfile:` 动作调用，`@` 后面的参数可以是数字或文字。
-`npm run balance` 也会跑一晚上的小馆营业模拟（`tools/balance/restaurant-report.test.ts`）。
+`npm run balance` 也会跑一晚上的小馆营业模拟（`tools/balance/restaurant-report.test.ts`）和 40 天的经济模拟（`tools/balance/economy-report.test.ts`：每天收入、第几天买得起哪项升级）。改了价格、菜谱、升级，跑一下看节奏有没有走样。
 
 **提交前必须通过** `npm run typecheck && npm test`；改了画面的，用 `npm run shot` 截图自己看一遍。
 

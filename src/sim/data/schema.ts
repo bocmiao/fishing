@@ -143,6 +143,8 @@ export const ItemsSchema = z.object({
   keepNetCapacity: z.number().int().positive(),
   /** 开局外公旧钱包里的钱 */
   startMoney: z.number().min(0),
+  /** 开局外公灶屋里剩下的东西（葱、面粉……） */
+  startGoods: z.record(z.string(), z.number().int().positive()).default({}),
 });
 export type Items = z.infer<typeof ItemsSchema>;
 export type Bait = Items['baits'][number];
@@ -180,6 +182,8 @@ export const GoodsSchema = z.object({
       price: z.number().min(0),
     }),
   ),
+  /** 阿婆杂货铺卖的东西（种子另外全都卖） */
+  shop: z.array(z.string()).default([]),
   /** 在家里做的加工：石磨磨面、和面饵、点豆腐 */
   crafts: z.array(
     z.object({
@@ -340,3 +344,42 @@ export const RestaurantSchema = z.object({
 });
 export type RestaurantConfig = z.infer<typeof RestaurantSchema>;
 export type GuestKind = RestaurantConfig['guests'][number];
+
+/** 一项升级的效果：数字是升级后的新值（不是增量）；rod / line 是换上的渔具 id */
+export const UpgradeEffectSchema = z
+  .object({
+    keepNetCapacity: z.number().int().positive(),
+    pondCapacity: z.number().int().positive(),
+    plots: z.number().int().positive(),
+    rod: z.string(),
+    line: z.string(),
+    /** 每天早上蚯蚓床里多出来的蚯蚓 */
+    dailyWorms: z.number().int().min(0),
+    tankCapacity: z.number().int().positive(),
+    menuSize: z.number().int().positive(),
+    tables: z.number().int().positive(),
+    /** 做菜小游戏好区的宽度倍率 */
+    cookingEase: z.number().positive(),
+    /** 口碑多涨几成 */
+    reputationBonus: z.number().min(0),
+  })
+  .partial();
+export type UpgradeEffect = z.infer<typeof UpgradeEffectSchema>;
+
+export const UpgradesSchema = z.object({
+  groups: z.array(z.object({ id: z.string(), name: z.string(), note: z.string() })),
+  upgrades: z.array(
+    z.object({
+      id: z.string(),
+      group: z.string(),
+      name: z.string(),
+      note: z.string(),
+      price: z.number().positive(),
+      /** 要先买了哪一项 */
+      requires: z.string().nullable(),
+      effect: UpgradeEffectSchema,
+    }),
+  ),
+});
+export type Upgrades = z.infer<typeof UpgradesSchema>;
+export type Upgrade = Upgrades['upgrades'][number];

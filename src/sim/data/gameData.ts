@@ -9,6 +9,7 @@ import pondJson from '../../../data/pond.json';
 import recipesJson from '../../../data/recipes.json';
 import restaurantJson from '../../../data/restaurant.json';
 import spotsJson from '../../../data/spots.json';
+import upgradesJson from '../../../data/upgrades.json';
 import {
   CropSchema,
   FarmSchema,
@@ -20,6 +21,7 @@ import {
   RecipeSchema,
   RestaurantSchema,
   SpotSchema,
+  UpgradesSchema,
   type Area,
   type Craft,
   type Crop,
@@ -31,6 +33,8 @@ import {
   type Recipe,
   type RestaurantConfig,
   type Spot,
+  type Upgrade,
+  type Upgrades,
 } from './schema';
 
 export interface GameData {
@@ -50,10 +54,15 @@ export interface GameData {
   recipes: Recipe[];
   recipeById: Map<string, Recipe>;
   restaurant: RestaurantConfig;
+  upgrades: Upgrade[];
+  upgradeById: Map<string, Upgrade>;
+  upgradeGroups: Upgrades['groups'];
   /** 库存里每种东西的名字（饵料、货物、种子） */
   itemNames: Map<string, string>;
   /** 杂货铺的价格 */
   itemPrices: Map<string, number>;
+  /** 杂货铺卖什么（饵料、配料、所有种子） */
+  shopItems: string[];
   travelMinutes(from: Area, to: Area): number;
 }
 
@@ -73,6 +82,7 @@ export interface RawGameData {
   places: unknown;
   recipes: unknown;
   restaurant: unknown;
+  upgrades: unknown;
 }
 
 /** 校验并整理配置表；出错时抛出带路径的错误信息 */
@@ -87,12 +97,14 @@ export function parseGameData(raw: RawGameData): GameData {
   const places = PlacesSchema.parse(raw.places);
   const recipes = z.object({ recipes: z.array(RecipeSchema) }).parse(raw.recipes).recipes;
   const restaurant = RestaurantSchema.parse(raw.restaurant);
+  const upgrades = UpgradesSchema.parse(raw.upgrades);
 
   const speciesById = unique(species, '鱼种');
   const spotById = unique(spots, '钓点');
   const cropById = unique(crops, '作物');
   const placeById = unique(places.places, '地点');
   const recipeById = unique(recipes, '菜谱');
+  const upgradeById = unique(upgrades.upgrades, '升级');
 
   const itemNames = new Map<string, string>();
   const itemPrices = new Map<string, number>();
@@ -129,12 +141,29 @@ export function parseGameData(raw: RawGameData): GameData {
     }
   }
   if (!placeById.has(places.home)) throw new Error(`家 ${places.home} 不在地点表里`);
+  const shopItems = [...goods.shop, ...crops.map((c) => seedId(c.id))];
+  for (const id of [...shopItems, ...Object.keys(items.startGoods)]) {
+    if (!itemNames.has(id)) throw new Error(`杂货铺或开局物品里的 ${id} 不存在`);
+  }
   for (const r of recipes) {
     for (const id of r.fish?.species ?? []) {
       if (!speciesById.has(id)) throw new Error(`菜谱 ${r.id} 用到了不存在的鱼 ${id}`);
     }
     for (const id of Object.keys(r.goods)) {
       if (!itemNames.has(id)) throw new Error(`菜谱 ${r.id} 用到了不存在的配料 ${id}`);
+    }
+  }
+  const groupIds = new Set(upgrades.groups.map((g) => g.id));
+  for (const u of upgrades.upgrades) {
+    if (!groupIds.has(u.group)) throw new Error(`升级 ${u.id} 的分组 ${u.group} 不存在`);
+    if (u.requires && !upgradeById.has(u.requires)) {
+      throw new Error(`升级 ${u.id} 要求的 ${u.requires} 不存在`);
+    }
+    if (u.effect.rod && !items.rods.some((r) => r.id === u.effect.rod)) {
+      throw new Error(`升级 ${u.id} 换上的鱼竿 ${u.effect.rod} 不存在`);
+    }
+    if (u.effect.line && !items.lines.some((l) => l.id === u.effect.line)) {
+      throw new Error(`升级 ${u.id} 换上的鱼线 ${u.effect.line} 不存在`);
     }
   }
   for (const g of restaurant.guests) {
@@ -168,8 +197,12 @@ export function parseGameData(raw: RawGameData): GameData {
     recipes,
     recipeById,
     restaurant,
+    upgrades: upgrades.upgrades,
+    upgradeById,
+    upgradeGroups: upgrades.groups,
     itemNames,
     itemPrices,
+    shopItems,
     travelMinutes,
   };
 }
@@ -197,5 +230,6 @@ export function getGameData(): GameData {
     places: placesJson,
     recipes: recipesJson,
     restaurant: restaurantJson,
+    upgrades: upgradesJson,
   }));
 }

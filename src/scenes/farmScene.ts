@@ -29,12 +29,23 @@ import { PostOverlay } from '../render/fx/postOverlay';
 import { Rain } from '../render/fx/rain';
 import { PALETTE } from '../render/palette';
 
-const COLS = 3;
-const ROWS = 2;
-const PLOT_W = 330;
-const PLOT_H = 240;
 const GAP = 40;
 const FIELD_TOP = 150;
+/** 地块区域最大能占多大（下面要留出小路和阿喵） */
+const FIELD_MAX_W = 1300;
+const FIELD_MAX_H = 560;
+
+/** 几块地怎么排：6 块排 3×2，开荒以后 3×3、4×3，地块跟着变小 */
+function gridFor(count: number): { cols: number; rows: number; w: number; h: number } {
+  const cols = count <= 9 ? 3 : 4;
+  const rows = Math.ceil(count / cols);
+  return {
+    cols,
+    rows,
+    w: Math.min(330, Math.floor((FIELD_MAX_W - (cols - 1) * GAP) / cols)),
+    h: Math.min(240, Math.floor((FIELD_MAX_H - (rows - 1) * GAP) / rows)),
+  };
+}
 
 /** 界面上工具的 id：hand、compost，或者 seed:作物id */
 function toolFromId(id: string): FarmTool {
@@ -135,8 +146,9 @@ export class FarmScene extends Scene {
   // ---------------------------------------------------------------- 布局
 
   private get field(): FieldRect {
-    const w = COLS * PLOT_W + (COLS - 1) * GAP;
-    const h = ROWS * PLOT_H + (ROWS - 1) * GAP;
+    const g = gridFor(this.ctx.state.plots.length);
+    const w = g.cols * g.w + (g.cols - 1) * GAP;
+    const h = g.rows * g.h + (g.rows - 1) * GAP;
     return { x: Math.round((this.view.width - w) / 2), y: FIELD_TOP, w, h };
   }
 
@@ -164,10 +176,11 @@ export class FarmScene extends Scene {
     this.plots = [];
     const count = this.ctx.state.plots.length;
     for (let i = 0; i < count; i++) {
-      const c = i % COLS;
-      const r = Math.floor(i / COLS);
+      const g = gridFor(count);
+      const c = i % g.cols;
+      const r = Math.floor(i / g.cols);
       const view = new PlotView(
-        { x: field.x + c * (PLOT_W + GAP), y: field.y + r * (PLOT_H + GAP), w: PLOT_W, h: PLOT_H },
+        { x: field.x + c * (g.w + GAP), y: field.y + r * (g.h + GAP), w: g.w, h: g.h },
         this.ctx.params.seed * 31 + i * 101,
       );
       this.plots.push(view);
@@ -330,6 +343,8 @@ export class FarmScene extends Scene {
     state.clock.advance(dt);
     if (state.clock.isDayOver) state.sleep();
 
+    // 开了新地：重新排地块
+    if (this.plots.length !== state.plots.length) this.layout();
     for (let i = 0; i < this.plots.length; i++) {
       const plot = state.plots[i]!;
       const view = this.plots[i]!;
@@ -413,6 +428,10 @@ export class FarmScene extends Scene {
 
   private toast(text: string, tone: 'good' | 'bad' | 'info'): void {
     this.ctx.ui.set({ toast: { id: ++this.toastId, text, tone } });
+  }
+
+  override refresh(): void {
+    this.pushFarmUi();
   }
 
   override resize(view: ViewSize): void {

@@ -27,6 +27,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
     <div className={`ui-root${watch ? ' is-watching' : ''}`}>
       <Plaque store={store} />
       <MapButton store={store} send={send} />
+      <UpgradeButton store={store} send={send} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
       {scene === 'farm' && <FarmHud store={store} send={send} />}
@@ -77,6 +78,86 @@ function MapButton({ store, send }: { store: Store<UiState>; send: Send }) {
       </button>
       {open && <MapPanel store={store} send={send} onClose={() => setOpen(false)} />}
     </>
+  );
+}
+
+function UpgradeButton({ store, send }: { store: Store<UiState>; send: Send }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyU') setOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <>
+      <button className="nav-button upgrade-button card" onClick={() => setOpen(true)}>
+        添置<kbd>U</kbd>
+      </button>
+      {open && <UpgradePanel store={store} send={send} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/** 升级：老韩渔具铺、修缮老宅、装修小馆 */
+function UpgradePanel({
+  store,
+  send,
+  onClose,
+}: {
+  store: Store<UiState>;
+  send: Send;
+  onClose: () => void;
+}) {
+  const groups = useUi(store, (s) => s.upgrades);
+  const money = useUi(store, (s) => s.money);
+  return (
+    <div className="map-backdrop" onClick={onClose}>
+      <div className="upgrades card" onClick={(e) => e.stopPropagation()}>
+        <div className="map-head">
+          <span className="map-title">添置 · 修缮</span>
+          <span className="map-clock">身上有 ¥{money}</span>
+          <button className="map-close" onClick={onClose} aria-label="关上">
+            ×
+          </button>
+        </div>
+        <div className="upgrade-groups">
+          {groups.map((g) => (
+            <div key={g.id} className="upgrade-group">
+              <div className="upgrade-group-title" title={g.note}>
+                {g.name}
+                <span>{g.note}</span>
+              </div>
+              <ul>
+                {g.items.map((u) => (
+                  <li key={u.id} className={`upgrade is-${u.status}`} title={u.note}>
+                    <div className="upgrade-text">
+                      <b>{u.name}</b>
+                      <span className="upgrade-effect">{u.effect}</span>
+                      <span className="upgrade-note">{u.note}</span>
+                    </div>
+                    {u.status === 'owned' ? (
+                      <span className="upgrade-owned">已添置</span>
+                    ) : u.status === 'locked' ? (
+                      <span className="upgrade-locked">先买「{u.requires}」</span>
+                    ) : (
+                      <button
+                        className="primary"
+                        disabled={money < u.price}
+                        onClick={() => send({ type: 'buyUpgrade', upgradeId: u.id })}
+                      >
+                        ¥{u.price}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -82,8 +82,13 @@ export class Service {
     private readonly rng: Rng,
     /** 收钱（记进 GameState 的钱和今天的账） */
     private readonly earn: (amount: number) => void,
+    /** 升级带来的：几张桌子、口碑多涨几成 */
+    private readonly opts: { tables: number; reputationBonus: number } = {
+      tables: data.restaurant.tables,
+      reputationBonus: 0,
+    },
   ) {
-    this.seatCount = data.restaurant.tables * data.restaurant.seatsPerTable;
+    this.seatCount = opts.tables * data.restaurant.seatsPerTable;
   }
 
   /**
@@ -135,7 +140,7 @@ export class Service {
         this.guests.push(guest);
         events.push({ type: 'arrive', guest });
         const [lo, hi] = cfg.arrivalMinutes;
-        this.arrivalTimer = this.rng.range(lo, hi) / (1 + this.restaurant.reputation / 30);
+        this.arrivalTimer = this.rng.range(lo, hi) / (1 + this.restaurant.reputation / 50);
       }
     }
 
@@ -238,7 +243,7 @@ export class Service {
     this.earn(amount);
     this.earned += amount;
     this.served++;
-    const gain = reputationGain(g.quality);
+    const gain = reputationGain(g.quality) * (1 + this.opts.reputationBonus);
     this.restaurant.reputation += gain;
     this.repGained += gain;
     this.restaurant.totalGuests++;

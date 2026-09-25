@@ -124,8 +124,9 @@ describe('菜地', () => {
     const state = new GameState(data, 6);
     state.inventory.add('wheat', 1);
     const dough = state.inventory.count('dough');
+    const flour = state.inventory.count('flour');
     expect(state.craft('mill_flour')).toBe(true);
-    expect(state.inventory.count('flour')).toBe(2);
+    expect(state.inventory.count('flour')).toBe(flour + 2);
     expect(state.craft('mix_dough')).toBe(true);
     expect(state.inventory.count('dough')).toBe(dough + 6);
     expect(state.craft('mill_flour')).toBe(false);

@@ -11,6 +11,8 @@ export type GameCommand =
   | { type: 'newGame' }
   /** 看完一天的小结，起床 */
   | { type: 'dismissSummary' }
+  /** 买一项升级（渔具、修缮老宅、装修小馆） */
+  | { type: 'buyUpgrade'; upgradeId: string }
   | { type: 'selectBait'; baitId: string }
   | { type: 'selectPosition'; positionId: string }
   | { type: 'catchDecision'; keep: boolean }

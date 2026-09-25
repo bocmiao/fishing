@@ -95,6 +95,8 @@ export const SaveSchemaV1 = z.object({
   lineId: z.string(),
   place: z.string(),
   today: StatsSchema.prefault({}),
+  /** 买过的升级（后来加的字段，老存档没有就是空的） */
+  upgrades: z.array(z.string()).default([]),
   restaurant: RestaurantSaveSchema.prefault({}),
 });
 export type SaveData = z.infer<typeof SaveSchemaV1>;
@@ -118,6 +120,7 @@ export function serialize(state: GameState): SaveData {
     lineId: state.lineId,
     place: state.place,
     today: { ...state.today },
+    upgrades: [...state.upgrades],
     restaurant: {
       ...state.restaurant,
       tank: state.restaurant.tank.map((f) => ({ ...f })),
@@ -147,23 +150,22 @@ export function restore(data: GameData, raw: unknown): GameState {
     if (data.itemNames.has(id)) state.inventory.add(id, n);
 
   state.keepNet.push(...save.keepNet.filter((f) => data.speciesById.has(f.speciesId)));
-  state.keepNetCapacity = save.keepNetCapacity;
   state.pond.length = 0;
   state.pond.push(
     ...save.pond.filter((f) => f.speciesId === null || data.speciesById.has(f.speciesId)),
   );
-  state.pondCapacity = save.pondCapacity;
   for (const [id, e] of save.journal) if (data.speciesById.has(id)) state.journal.set(id, e);
 
-  // 地块数量以配置表为准（扩建以后变多，存档里少的补成荒地）
+  // 升级决定鱼护、鱼塘、渔具、地块数；先按升级把地块补齐，再填存档里的地
+  for (const id of save.upgrades) if (data.upgradeById.has(id)) state.upgrades.add(id);
+  state.applyUpgrades();
   save.plots.forEach((p, i) => {
     const plot = state.plots[i];
     if (plot && (p.cropId === null || data.cropById.has(p.cropId))) Object.assign(plot, p);
   });
 
   if (data.items.baits.some((b) => b.id === save.baitId)) state.baitId = save.baitId;
-  if (data.items.rods.some((r) => r.id === save.rodId)) state.rodId = save.rodId;
-  if (data.items.lines.some((l) => l.id === save.lineId)) state.lineId = save.lineId;
+  // rodId / lineId 还存着（兼容），但以买过的升级为准，applyUpgrades 已经设好了
   if (data.placeById.has(save.place)) state.place = save.place;
   state.today = { ...save.today };
 

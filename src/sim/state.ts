@@ -17,6 +17,7 @@ import {
   type RestaurantState,
 } from './restaurant/restaurant';
 import { hashString, Rng } from './rng/rng';
+import { baseStats, statsWith, upgradeStatus, type UpgradeStats } from './upgrades';
 import { GameClock, type Season } from './time/clock';
 
 export const WEATHER_NAMES: Record<Weather, string> = { sunny: '晴', cloudy: '多云', rain: '雨' };
@@ -106,7 +107,12 @@ export interface DaySummary {
   weather: Weather;
   /** 小满代班的结果（这天小馆没自己开门时） */
   helper: HelperResult | null;
+  /** 早上蚯蚓床里多出来的蚯蚓 */
+  bedWorms: number;
 }
+
+/** 买升级的结果 */
+export type BuyResult = 'ok' | 'owned' | 'locked' | 'money' | 'unknown';
 
 function emptyStats(): DayStats {
   return {
@@ -139,6 +145,10 @@ export class GameState {
   readonly inventory: Inventory;
   /** 菜地的每一块地 */
   readonly plots: Plot[] = [];
+  /** 买过的升级 */
+  readonly upgrades = new Set<string>();
+  /** 升级之后的各项数值（鱼护、鱼塘、菜地、小馆……） */
+  stats: UpgradeStats;
   /** 喵记小馆：活鱼缸、菜单、口碑 */
   readonly restaurant: RestaurantState = newRestaurant();
   /** 现在在哪（地点 id，也是画面名） */
@@ -165,8 +175,9 @@ export class GameState {
     this.rng = new Rng(seed).fork('state');
     this.clock = new GameClock();
     this.weather = rollWeather(this.clock.season, this.rng);
-    this.keepNetCapacity = data.items.keepNetCapacity;
-    this.pondCapacity = data.pond.capacity;
+    this.stats = baseStats(data);
+    this.keepNetCapacity = this.stats.keepNetCapacity;
+    this.pondCapacity = this.stats.pondCapacity;
     data.pond.starters.forEach((k, i) => {
       this.pond.push({
         uid: -(i + 1),
@@ -189,8 +200,33 @@ export class GameState {
     this.inventory = new Inventory();
     for (const b of data.items.baits) this.inventory.add(b.id, b.startCount);
     for (const c of data.crops) this.inventory.add(seedId(c.id), c.startSeeds);
+    for (const [id, n] of Object.entries(data.items.startGoods)) this.inventory.add(id, n);
     for (let i = 0; i < data.farm.plots; i++) this.plots.push(newPlot());
     this.place = data.homePlace;
+  }
+
+  // ---------------------------------------------------------------- 升级
+
+  /** 按买过的升级重新算各项数值：鱼护、鱼塘容量、鱼竿鱼线、菜地块数…… */
+  applyUpgrades(): void {
+    this.stats = statsWith(this.data, this.upgrades);
+    this.keepNetCapacity = this.stats.keepNetCapacity;
+    this.pondCapacity = this.stats.pondCapacity;
+    this.rodId = this.stats.rodId;
+    this.lineId = this.stats.lineId;
+    // 新开的地是荒地，要自己开荒（开荒也能挖到蚯蚓）
+    while (this.plots.length < this.stats.plots) this.plots.push(newPlot());
+  }
+
+  buyUpgrade(id: string): BuyResult {
+    const upgrade = this.data.upgradeById.get(id);
+    if (!upgrade) return 'unknown';
+    const status = upgradeStatus(upgrade, this.upgrades);
+    if (status !== 'available') return status;
+    if (!this.spend(upgrade.price)) return 'money';
+    this.upgrades.add(id);
+    this.applyUpgrades();
+    return 'ok';
   }
 
   /** 天气相关的随机数（存档后重新读档时按天数重新派生，不需要存状态） */
@@ -339,7 +375,7 @@ export class GameState {
   /** 鱼护里的鱼放进小馆的活鱼缸；缸满了返回 false */
   toTank(uid: number): boolean {
     const r = this.restaurant;
-    if (r.tank.length >= this.data.restaurant.tankCapacity) return false;
+    if (r.tank.length >= this.stats.tankCapacity) return false;
     const i = this.keepNet.findIndex((f) => f.uid === uid);
     if (i < 0) return false;
     r.tank.push(...this.keepNet.splice(i, 1));
@@ -372,7 +408,7 @@ export class GameState {
     const ids = recipeIds.filter(
       (id, i) => this.data.recipeById.has(id) && recipeIds.indexOf(id) === i,
     );
-    this.restaurant.menu = ids.slice(0, this.data.restaurant.menuSize);
+    this.restaurant.menu = ids.slice(0, this.stats.menuSize);
   }
 
   /** 今天小馆营业过没有（自己开门或小满代班） */
@@ -402,6 +438,8 @@ export class GameState {
     // 早早睡了、小馆还没营业：小满照样去开门
     const helper = this.runHelperIfDue(this.rng, true);
     const rained = this.weather === 'rain';
+    const bedWorms = this.stats.dailyWorms;
+    this.inventory.add('worm', bedWorms);
     const ripened = growPlots(
       this.plots,
       { crops: this.data.cropById, config: this.data.farm },
@@ -410,7 +448,14 @@ export class GameState {
     this.clock.sleep();
     this.weather = rollWeather(this.clock.season, this.rng);
     this.place = this.data.homePlace;
-    const summary: DaySummary = { day, stats: this.today, ripened, weather: this.weather, helper };
+    const summary: DaySummary = {
+      bedWorms,
+      day,
+      stats: this.today,
+      ripened,
+      weather: this.weather,
+      helper,
+    };
     this.today = emptyStats();
     this.lastSummary = summary;
     return summary;

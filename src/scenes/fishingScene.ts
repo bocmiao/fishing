@@ -1053,6 +1053,10 @@ export class FishingScene extends Scene {
     return { ...this.tuning } as unknown as Record<string, number>;
   }
 
+  override refresh(): void {
+    this.pushFishingUi();
+  }
+
   override resize(view: ViewSize): void {
     if (view.width === this.view.width && view.height === this.view.height) return;
     this.view = { ...view };

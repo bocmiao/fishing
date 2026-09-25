@@ -7,16 +7,38 @@
   "menuSize": 4,
   "tables": 4,
   "seatsPerTable": 2,
-  "arrivalMinutes": [8, 15],
+  "arrivalMinutes": [
+    8,
+    15
+  ],
   "patienceMinutes": 45,
   "eatMinutes": 16,
-  "helper": { "share": 0.7, "quality": 0.6, "dishes": [3, 5] },
+  "helper": {
+    "share": 0.7,
+    "quality": 0.6,
+    "dishes": [
+      3,
+      5
+    ]
+  },
   "compostPerFishDish": 0.5,
   "cooking": {
     "steps": [
-      { "name": "切配", "speed": 1.1, "zone": 0.24 },
-      { "name": "掂锅", "speed": 1.5, "zone": 0.18 },
-      { "name": "装盘", "speed": 0.9, "zone": 0.28 }
+      {
+        "name": "切配",
+        "speed": 1.1,
+        "zone": 0.24
+      },
+      {
+        "name": "掂锅",
+        "speed": 1.5,
+        "zone": 0.18
+      },
+      {
+        "name": "装盘",
+        "speed": 0.9,
+        "zone": 0.28
+      }
     ]
   },
   "guests": [
@@ -26,7 +48,10 @@
       "animal": "rabbit",
       "color": "fishWhite",
       "accent": "pink",
-      "likes": ["corn_cake", "stir_greens"],
+      "likes": [
+        "corn_cake",
+        "stir_greens"
+      ],
       "vegetarian": true,
       "minReputation": 0,
       "weight": 1
@@ -37,7 +62,10 @@
       "animal": "duck",
       "color": "cream",
       "accent": "gold",
-      "likes": ["fried_minnows", "fish_noodles"],
+      "likes": [
+        "fried_minnows",
+        "fish_noodles"
+      ],
       "vegetarian": false,
       "minReputation": 0,
       "weight": 1.4
@@ -48,7 +76,10 @@
       "animal": "dog",
       "color": "straw",
       "accent": "fishWhite",
-      "likes": ["braised_crucian", "corn_cake"],
+      "likes": [
+        "braised_crucian",
+        "corn_cake"
+      ],
       "vegetarian": false,
       "minReputation": 0,
       "weight": 1
@@ -59,9 +90,12 @@
       "animal": "otter",
       "color": "slateBlue",
       "accent": "cream",
-      "likes": ["crucian_tofu_soup", "loach_tofu"],
+      "likes": [
+        "crucian_tofu_soup",
+        "loach_tofu"
+      ],
       "vegetarian": false,
-      "minReputation": 5,
+      "minReputation": 3,
       "weight": 1
     },
     {
@@ -70,7 +104,10 @@
       "animal": "buffalo",
       "color": "ink",
       "accent": "straw",
-      "likes": ["eel_pot", "braised_crucian"],
+      "likes": [
+        "eel_pot",
+        "braised_crucian"
+      ],
       "vegetarian": false,
       "minReputation": 10,
       "weight": 0.8
@@ -81,9 +118,12 @@
       "animal": "fox",
       "color": "gold",
       "accent": "fishWhite",
-      "likes": ["steamed_hooksnout", "eel_pot"],
+      "likes": [
+        "steamed_hooksnout",
+        "eel_pot"
+      ],
       "vegetarian": false,
-      "minReputation": 20,
+      "minReputation": 25,
       "weight": 0.6
     }
   ]

@@ -4,6 +4,7 @@ import { Rng } from '../sim/rng/rng';
 import { restore, serialize } from '../sim/save';
 import { WEATHER_NAMES, GameState, type DaySummary } from '../sim/state';
 import { SEASON_NAMES } from '../sim/time/clock';
+import { describeEffect, statsWith, upgradeStatus } from '../sim/upgrades';
 import { CommandBus } from './commands';
 import { randomSeed, type LaunchParams } from './params';
 import { clearSave, readSave, writeSave } from './saveStore';
@@ -99,6 +100,7 @@ export class Game {
       else if (cmd.type === 'travel') this.travel(cmd.placeId);
       else if (cmd.type === 'sleep') this.state.sleep();
       else if (cmd.type === 'newGame') this.newGame();
+      else if (cmd.type === 'buyUpgrade') this.buyUpgrade(cmd.upgradeId);
       else if (cmd.type === 'dismissSummary') {
         this.state.clock.paused = false;
         this.ui.set({ daySummary: null });
@@ -144,6 +146,7 @@ export class Game {
       this.scene = scene;
       if (this.state.data.placeById.has(name)) this.state.place = name;
       this.pushPlaces();
+      this.pushUpgrades();
       // 预先模拟一段时间，让画面进入自然状态
       const warmupSteps = Math.round(warmup * 30);
       for (let i = 0; i < warmupSteps; i++) scene.update(1 / 30);
@@ -172,6 +175,65 @@ export class Game {
     this.ui.set({ daySummary: null, money: this.state.money });
     this.sceneName = '';
     void this.goto(this.state.data.homePlace);
+  }
+
+  private buyUpgrade(id: string): void {
+    const state = this.state;
+    const upgrade = state.data.upgradeById.get(id);
+    const result = state.buyUpgrade(id);
+    const text =
+      result === 'ok'
+        ? `添置了${upgrade?.name ?? ''}`
+        : result === 'money'
+          ? '钱还不够'
+          : result === 'locked'
+            ? '要先买前面那一项'
+            : '';
+    if (text) {
+      this.ui.set({ toast: { id: ++this.toastId, text, tone: result === 'ok' ? 'good' : 'info' } });
+    }
+    if (result === 'ok') {
+      this.pushUpgrades();
+      this.scene?.refresh();
+      this.save();
+    }
+  }
+
+  /** 买这一项之前的数值（已经买过的升级也显示"从多少变成多少"，而不是"12 → 12"） */
+  private statsBefore(id: string) {
+    const state = this.state;
+    if (!state.upgrades.has(id)) return state.stats;
+    const data = state.data;
+    const dependsOn = (uid: string): boolean => {
+      const req = data.upgradeById.get(uid)?.requires;
+      return !!req && (req === id || dependsOn(req));
+    };
+    const without = new Set([...state.upgrades].filter((u) => u !== id && !dependsOn(u)));
+    return statsWith(data, without);
+  }
+
+  /** 升级面板：每一项现在是什么状态、买了会怎样 */
+  private pushUpgrades(): void {
+    const state = this.state;
+    const data = state.data;
+    this.ui.set({
+      upgrades: data.upgradeGroups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        note: g.note,
+        items: data.upgrades
+          .filter((u) => u.group === g.id)
+          .map((u) => ({
+            id: u.id,
+            name: u.name,
+            note: u.note,
+            effect: describeEffect(data, this.statsBefore(u.id), u),
+            price: u.price,
+            status: upgradeStatus(u, state.upgrades),
+            requires: u.requires ? (data.upgradeById.get(u.requires)?.name ?? '') : '',
+          })),
+      })),
+    });
   }
 
   /** 存档（截图模式不存，免得影响之后的正常游戏） */
@@ -217,6 +279,7 @@ export class Game {
     if (s.caught > 0) lines.push(`钓到 ${s.caught} 条鱼，放进鱼护 ${s.kept} 条`);
     if (s.worms > 0) lines.push(`在菜地挖到 ${s.worms} 条蚯蚓`);
     if (s.harvested > 0) lines.push(`收获了 ${s.harvested} 份作物`);
+    if (summary.bedWorms > 0) lines.push(`蚯蚓床里又多了 ${summary.bedWorms} 条蚯蚓`);
     if (s.guests > 0) lines.push(`小馆接待了 ${s.guests} 位客人`);
     if (s.restaurantEarned > 0) lines.push(`小馆一共收入 ¥${s.restaurantEarned}`);
     const helper = summary.helper;

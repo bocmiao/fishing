@@ -65,6 +65,9 @@ export class RestaurantScene extends Scene {
   private readonly floaters = new FloatingTexts();
   private tables: { x: number; y: number }[] = [];
   private seats: { x: number; y: number; table: number }[] = [];
+  /** 按几张桌子排的（添了桌子、菜牌以后，没在营业时重新排） */
+  private layoutTables = 0;
+  private layoutMenu = 0;
 
   private service: Service | null = null;
   private cooking: { guestId: number; recipe: Recipe; game: CookingGame } | null = null;
@@ -140,13 +143,18 @@ export class RestaurantScene extends Scene {
     // 鱼缸自己带着一张鱼的图集，先单独销毁
     this.tank?.destroy();
     for (const c of this.furniture.removeChildren()) c.destroy({ children: true });
+    // 4 张桌子排两列；添了桌子以后排三列
     const cx = w / 2 + 90;
-    this.tables = [
-      { x: cx - 330, y: 330 },
-      { x: cx + 330, y: 330 },
-      { x: cx - 330, y: 590 },
-      { x: cx + 330, y: 590 },
-    ].slice(0, this.ctx.state.data.restaurant.tables);
+    const count = this.ctx.state.stats.tables;
+    const cols = count > 4 ? 3 : 2;
+    const dx = cols === 3 ? 450 : 660;
+    this.tables = [];
+    for (let i = 0; i < count; i++) {
+      const c = i % cols;
+      const r = Math.floor(i / cols);
+      this.tables.push({ x: cx + (c - (cols - 1) / 2) * dx, y: 330 + r * 260 });
+    }
+    this.layoutTables = count;
     this.seats = [];
     this.tables.forEach((t, i) => {
       for (const s of [-1, 1]) this.seats.push({ x: t.x + s * SEAT_OFFSET, y: t.y, table: i });
@@ -163,7 +171,7 @@ export class RestaurantScene extends Scene {
     );
     this.furniture.addChild(this.tank.node);
     this.tank.sync(this.ctx.state.restaurant.tank);
-    this.board = new MenuBoard(w - 470, 14, this.ctx.state.data.restaurant.menuSize);
+    this.board = new MenuBoard(w - 470, 14, this.ctx.state.stats.menuSize);
     this.furniture.addChild(this.board.node);
     this.lanterns = [0.3, 0.55, 0.85].map((f, i) => new Lantern(w * f, WALL_H + 4, i * 1.7));
     for (const l of this.lanterns) this.furniture.addChild(l.node);
@@ -171,6 +179,7 @@ export class RestaurantScene extends Scene {
     this.cat.lookAt(0, -1);
     this.post.resize(w, h);
     this.root.hitArea = new Rectangle(0, 0, w, h);
+    this.layoutMenu = this.ctx.state.stats.menuSize;
     this.updateBoard();
   }
 
@@ -212,6 +221,7 @@ export class RestaurantScene extends Scene {
     state.restaurant.servedDay = state.clock.day;
     // 从现在起按分钟推进营业（之前在店里待着的时间不算）
     this.lastMinute = state.clock.minute;
+    const stats = state.stats;
     this.service = new Service(
       state.data,
       state.restaurant,
@@ -222,6 +232,7 @@ export class RestaurantScene extends Scene {
         state.today.restaurantEarned += n;
         state.today.guests++;
       },
+      { tables: stats.tables, reputationBonus: stats.reputationBonus },
     );
     this.toast('开门营业！客人点了菜，点一下客人或者按空格开始做', 'good');
     this.pushUi();
@@ -287,10 +298,13 @@ export class RestaurantScene extends Scene {
     if (!this.service || this.cooking) return;
     const recipe = this.service.startCooking(guestId);
     if (!recipe) return;
-    const game = new CookingGame(
-      this.ctx.state.data.restaurant.cooking.steps,
-      this.rng.fork(`cook:${guestId}`),
-    );
+    // 新灶台：好区宽一些
+    const ease = this.ctx.state.stats.cookingEase;
+    const steps = this.ctx.state.data.restaurant.cooking.steps.map((s) => ({
+      ...s,
+      zone: Math.min(0.6, s.zone * ease),
+    }));
+    const game = new CookingGame(steps, this.rng.fork(`cook:${guestId}`));
     this.cooking = { guestId, recipe, game };
     this.guests.get(guestId)?.sprite.setBubble('做着呢…', 'cooking');
     const s = this.counter.stove;
@@ -460,6 +474,14 @@ export class RestaurantScene extends Scene {
       if (this.service) this.handleEvents(this.service.tick(this.lastMinute));
     }
     if (this.service && !this.service.open && this.service.guests.length === 0) this.service = null;
+    // 买了新桌子、大菜牌：不在营业的时候重新摆
+    const stats = state.stats;
+    if (
+      !this.service &&
+      (stats.tables !== this.layoutTables || stats.menuSize !== this.layoutMenu)
+    ) {
+      this.layout();
+    }
 
     this.cooking?.game.update(dt);
     this.updateGuests(dt);
@@ -607,18 +629,16 @@ export class RestaurantScene extends Scene {
           onMenu: r.menu.includes(recipe.id),
           servings: this.servings(recipe),
         })),
-        menuSize: cfg.menuSize,
+        menuSize: state.stats.menuSize,
         tank: r.tank.map((f) => this.fishUi(f)),
-        tankCapacity: cfg.tankCapacity,
+        tankCapacity: state.stats.tankCapacity,
         keepNet: state.keepNet.map((f) => this.fishUi(f)),
-        shop: [...data.items.baits.map((b) => b.id), ...data.crops.map((c) => `seed:${c.id}`)].map(
-          (id) => ({
-            id,
-            name: state.itemName(id),
-            price: data.itemPrices.get(id) ?? 0,
-            owned: state.inventory.count(id),
-          }),
-        ),
+        shop: data.shopItems.map((id) => ({
+          id,
+          name: state.itemName(id),
+          price: data.itemPrices.get(id) ?? 0,
+          owned: state.inventory.count(id),
+        })),
         orders: (this.service?.guests ?? [])
           .filter((g) => g.state === 'waiting')
           .map((g) => ({
@@ -640,6 +660,10 @@ export class RestaurantScene extends Scene {
 
   private toast(text: string, tone: 'good' | 'bad' | 'info'): void {
     this.ctx.ui.set({ toast: { id: ++this.toastId, text, tone } });
+  }
+
+  override refresh(): void {
+    this.pushUi();
   }
 
   override resize(view: ViewSize): void {

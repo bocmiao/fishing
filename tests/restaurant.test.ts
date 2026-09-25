@@ -57,6 +57,8 @@ describe('后厨', () => {
     const state = new GameState(data, 1);
     const rng = new Rng(1);
     const pantry = { inventory: state.inventory, tank: state.restaurant.tank };
+    // 先把外公留下的葱拿走
+    state.inventory.take('scallion', state.inventory.count('scallion'));
     expect(canCook(recipe('braised_crucian'), pantry)).toBe(false);
     stock(state, 'crucian', 2, rng);
     expect(canCook(recipe('braised_crucian'), pantry)).toBe(false);

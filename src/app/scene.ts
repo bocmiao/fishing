@@ -41,6 +41,9 @@ export abstract class Scene {
   /** 窗口尺寸变化 */
   resize(_view: ViewSize): void {}
 
+  /** 画面外面改了游戏状态（例如买了升级）：刷新界面上的数字 */
+  refresh(): void {}
+
   /** 离开画面：释放资源 */
   exit(): void {
     this.root.destroy({ children: true });

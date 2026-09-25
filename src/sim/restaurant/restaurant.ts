@@ -62,7 +62,7 @@ export function addScraps(
 
 /** 口碑涨一点：做得越好涨得越多 */
 export function reputationGain(quality: number): number {
-  return 0.4 + 0.8 * quality;
+  return 0.1 + 0.25 * quality;
 }
 
 /**
@@ -76,7 +76,7 @@ export function runHelper(
   rng: Rng,
 ): HelperResult {
   const cfg = data.restaurant.helper;
-  const limit = rng.int(cfg.dishes[0], cfg.dishes[1]) + Math.floor(r.reputation / 15);
+  const limit = rng.int(cfg.dishes[0], cfg.dishes[1]) + Math.floor(r.reputation / 40);
   const dishes: string[] = [];
   let earned = 0;
   for (let i = 0; i < limit; i++) {

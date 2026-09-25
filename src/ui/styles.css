@@ -278,6 +278,107 @@ body {
   color: var(--ink-soft);
 }
 
+/* ---------------------------------------------------------------- 添置 · 修缮 */
+
+.upgrade-button {
+  right: 150px;
+}
+
+.upgrades {
+  width: 1240px;
+  padding: 16px 20px 20px;
+}
+
+.upgrade-groups {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.upgrade-group-title {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.upgrade-group-title span {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.upgrade-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upgrade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.upgrade-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.upgrade-effect {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.upgrade-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.upgrade.is-owned .upgrade-text {
+  opacity: 0.6;
+}
+
+.upgrade.is-locked .upgrade-text {
+  opacity: 0.5;
+}
+
+.upgrade button {
+  min-width: 72px;
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper) !important;
+}
+
+.upgrade button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.upgrade-owned {
+  font-size: 12px;
+  color: var(--sweet);
+  white-space: nowrap;
+}
+
+.upgrade-locked {
+  max-width: 90px;
+  font-size: 11px;
+  text-align: right;
+  color: var(--ink-soft);
+}
+
 /* ---------------------------------------------------------------- 一天的小结 */
 
 .summary {
