@@ -52,10 +52,25 @@ export type ServiceEvent =
   | { type: 'gone'; guest: Guest }
   | { type: 'closed'; summary: ServiceSummary };
 
+/** 卖出去的一道菜（打烊时的账本用） */
+export interface Sale {
+  recipeId: string;
+  recipe: string;
+  guest: string;
+  price: number;
+  tip: number;
+  quality: number;
+}
+
 export interface ServiceSummary {
   guests: number;
   earned: number;
   reputation: number;
+  sales: Sale[];
+  /** 等不及先走的客人 */
+  impatient: number;
+  /** 打烊的时候菜是不是都卖完了 */
+  soldOut: boolean;
 }
 
 const WALK_MINUTES = 3;
@@ -68,6 +83,8 @@ export class Service {
   served = 0;
   earned = 0;
   repGained = 0;
+  impatient = 0;
+  readonly sales: Sale[] = [];
   private nextId = 1;
   private arrivalTimer = 2;
   private readonly reserved: Reserved = emptyReserved();
@@ -157,6 +174,7 @@ export class Service {
           if (!g.cooking && g.timer > cfg.patienceMinutes) {
             this.cancelOrder(g);
             g.happy = false;
+            this.impatient++;
             this.setState(g, 'leaving');
             events.push({ type: 'impatient', guest: g });
           }
@@ -247,6 +265,16 @@ export class Service {
     this.restaurant.reputation += gain;
     this.repGained += gain;
     this.restaurant.totalGuests++;
+    if (g.recipe) {
+      this.sales.push({
+        recipeId: g.recipe.id,
+        recipe: g.recipe.name,
+        guest: g.kind.name,
+        price: g.price,
+        tip: g.tip,
+        quality: g.quality,
+      });
+    }
     this.setState(g, 'leaving');
     return { type: 'paid', guest: g, amount };
   }
@@ -266,7 +294,14 @@ export class Service {
     }
     events.push({
       type: 'closed',
-      summary: { guests: this.served, earned: this.earned, reputation: this.repGained },
+      summary: {
+        guests: this.served,
+        earned: this.earned,
+        reputation: this.repGained,
+        sales: [...this.sales],
+        impatient: this.impatient,
+        soldOut: this.soldOut,
+      },
     });
     return events;
   }

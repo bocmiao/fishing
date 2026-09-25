@@ -280,6 +280,7 @@ function DaySummaryCard({ store, send }: { store: Store<UiState>; send: Send }) 
             <li key={l}>{l}</li>
           ))}
         </ul>
+        {summary.goal && <div className="summary-goal">{summary.goal}</div>}
         <div className="summary-tomorrow">明天 · {summary.tomorrow}</div>
         <div className="catch-actions">
           <button className="primary" onClick={() => send({ type: 'dismissSummary' })}>
@@ -449,7 +450,14 @@ function RestaurantHud({ store, send }: { store: Store<UiState>; send: Send }) {
       <div className={`service-bar card is-${r.status}`}>
         <span>{r.statusText}</span>
         <span className="service-rep">口碑 {r.reputation}</span>
+        {r.canClose && (
+          <button className="service-close" onClick={() => send({ type: 'closeShop' })}>
+            提前打烊
+          </button>
+        )}
       </div>
+      {r.soldOutHint && <div className="sold-out card">{r.soldOutHint}</div>}
+      <NightReportCard store={store} send={send} />
       {r.orders.length > 0 && (
         <div className="orders">
           {r.orders.map((o) => (
@@ -521,6 +529,46 @@ function RestaurantHud({ store, send }: { store: Store<UiState>; send: Send }) {
       {panel === 'shop' && <ShopPanel r={r} money={money} send={send} />}
       {panel === 'stall' && <StallPanel r={r} send={send} />}
     </>
+  );
+}
+
+function NightReportCard({ store, send }: { store: Store<UiState>; send: Send }) {
+  const report = useUi(store, (s) => s.nightReport);
+  if (!report) return null;
+  const dismiss = () => send({ type: 'dismissNightReport' });
+  return (
+    <div className="catch-backdrop">
+      <div className="summary card night-report">
+        <h2>{report.title}</h2>
+        <ul>
+          {report.lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+        {report.quote && <p className="catch-note">{report.quote}</p>}
+        <div className="summary-tomorrow">{report.hint}</div>
+        <div className="catch-actions">
+          <button
+            className="primary"
+            onClick={() => {
+              dismiss();
+              send({ type: 'sleep' });
+            }}
+          >
+            回家睡觉
+          </button>
+          <button
+            onClick={() => {
+              dismiss();
+              send({ type: 'travel', placeId: 'fishing' });
+            }}
+          >
+            去小溪夜钓
+          </button>
+          <button onClick={dismiss}>在店里待会儿</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

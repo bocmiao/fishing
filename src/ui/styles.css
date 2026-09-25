@@ -401,6 +401,12 @@ body {
   line-height: 2;
 }
 
+.summary-goal {
+  margin: -6px 0 12px;
+  font-size: 14px;
+  color: var(--gold);
+}
+
 .summary-tomorrow {
   margin-bottom: 18px;
   font-size: 13px;
@@ -1140,6 +1146,36 @@ kbd {
 
 .service-bar.is-open {
   border-color: var(--vermilion);
+}
+
+.service-close {
+  margin-left: 4px;
+  padding: 0 10px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fffaf0;
+  pointer-events: auto;
+}
+
+.sold-out {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 16px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  border-color: var(--gold);
+  white-space: nowrap;
+}
+
+.night-report {
+  width: 520px;
+}
+
+.night-report .catch-actions button {
+  min-width: 120px;
 }
 
 .service-rep {

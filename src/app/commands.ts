@@ -31,6 +31,9 @@ export type GameCommand =
   | { type: 'buy'; itemId: string; count: number }
   /** 小馆：开门营业 / 在店里忙到傍晚 / 开关小满代班 */
   | { type: 'openShop' }
+  /** 小馆：提前打烊；看完今晚的账本 */
+  | { type: 'closeShop' }
+  | { type: 'dismissNightReport' }
   | { type: 'skipToEvening' }
   | { type: 'toggleHelper' }
   /** 小馆：给这位客人做菜；做菜小游戏里按一下 */

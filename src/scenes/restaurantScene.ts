@@ -12,7 +12,12 @@ import type { Recipe } from '../sim/data/schema';
 import { fishPrice, formatWeight } from '../sim/fishing/catchRoll';
 import { CookingGame } from '../sim/restaurant/cooking';
 import { canCook, emptyReserved, reserve } from '../sim/restaurant/kitchen';
-import { Service, type Guest, type ServiceEvent } from '../sim/restaurant/service';
+import {
+  Service,
+  type Guest,
+  type ServiceEvent,
+  type ServiceSummary,
+} from '../sim/restaurant/service';
 import type { Rng } from '../sim/rng/rng';
 import { WEATHER_NAMES, type CaughtFish } from '../sim/state';
 import { formatClock, SEASON_NAMES } from '../sim/time/clock';
@@ -78,6 +83,9 @@ export class RestaurantScene extends Scene {
   private tankTimer = 0;
   private toastId = 0;
   private closedText = '';
+  /** 菜卖完、店里也没客人了多少分钟（久了就自动打烊） */
+  private idleSoldOut = 0;
+  private reportId = 0;
   private unsubscribe: (() => void) | null = null;
   private readonly onKey = (e: KeyboardEvent) => this.handleKey(e);
 
@@ -281,9 +289,8 @@ export class RestaurantScene extends Scene {
         case 'closed': {
           const s = e.summary;
           this.closedText = `今晚接待了 ${s.guests} 位客人，收入 ¥${s.earned}，口碑 +${s.reputation.toFixed(1)}`;
-          this.toast(`打烊了。${this.closedText}`, 'good');
           if (this.cooking) this.cooking = null;
-          this.ctx.ui.set({ cooking: null });
+          this.ctx.ui.set({ cooking: null, nightReport: this.nightReport(s) });
           break;
         }
       }
@@ -292,6 +299,49 @@ export class RestaurantScene extends Scene {
       this.tank.sync(state.restaurant.tank);
       this.pushUi();
     }
+  }
+
+  /** 打烊时的"今晚的账本"：卖了什么、赚了多少、口碑到哪了、接下来可以做什么 */
+  private nightReport(s: ServiceSummary) {
+    const state = this.ctx.state;
+    const data = state.data;
+    const lines: string[] = [];
+    if (s.guests === 0) {
+      lines.push('今晚一位客人也没接待上');
+    } else {
+      lines.push(`接待了 ${s.guests} 位客人`);
+      const counts = new Map<string, number>();
+      for (const sale of s.sales) counts.set(sale.recipe, (counts.get(sale.recipe) ?? 0) + 1);
+      lines.push(
+        [...counts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, n]) => `${name} ×${n}`)
+          .join('　'),
+      );
+      const tips = s.sales.reduce((sum, x) => sum + x.tip, 0);
+      lines.push(`收入 ¥${s.earned}${tips > 0 ? `（其中小费 ¥${tips}）` : ''}`);
+      const perfect = s.sales.filter((x) => x.quality >= 0.9).length;
+      if (perfect > 0) lines.push(`${perfect} 道菜做得特别好 ★`);
+    }
+    if (s.impatient > 0) lines.push(`${s.impatient} 位客人等不及先走了，下次早点做`);
+    const rep = state.restaurant.reputation;
+    lines.push(`口碑 +${s.reputation.toFixed(1)}，现在 ${rep.toFixed(1)}`);
+    const next = data.restaurant.guests
+      .filter((g) => g.minReputation > rep)
+      .sort((a, b) => a.minReputation - b.minReputation)[0];
+    if (next) lines.push(`口碑到 ${next.minReputation}，${next.name}也会来吃饭`);
+
+    const best = [...s.sales].sort((a, b) => b.quality - a.quality)[0];
+    const quote = best
+      ? `${best.guest}：「${best.recipe}${best.quality >= 0.9 ? '做得太好了，明天还来！' : '挺好吃的。'}」`
+      : '';
+    const night = state.clock.minute < data.restaurant.closeMinute + 30;
+    const hint = s.soldOut
+      ? '菜都卖完了。明天多钓点鱼、多备点菜，能接待更多客人'
+      : night
+        ? '夜里的小溪有黄鳝，可以去夜钓；也可以回家睡觉'
+        : '可以回家睡觉了';
+    return { id: ++this.reportId, title: '今晚的账本', lines, quote, hint };
   }
 
   private startCooking(guestId: number): void {
@@ -382,6 +432,12 @@ export class RestaurantScene extends Scene {
       case 'openShop':
         this.openShop();
         break;
+      case 'closeShop':
+        if (this.service?.open) this.handleEvents(this.service.close());
+        break;
+      case 'dismissNightReport':
+        this.ctx.ui.set({ nightReport: null });
+        break;
       case 'skipToEvening': {
         const open = state.data.restaurant.openMinute;
         if (!this.service && state.clock.minute < open) {
@@ -471,7 +527,18 @@ export class RestaurantScene extends Scene {
     // 按游戏分钟推进营业
     while (this.lastMinute < state.clock.minute) {
       this.lastMinute++;
-      if (this.service) this.handleEvents(this.service.tick(this.lastMinute));
+      const s = this.service;
+      if (!s) continue;
+      this.handleEvents(s.tick(this.lastMinute));
+      // 菜卖完了、店里也空了：等一会儿还是没东西卖，就提前打烊
+      if (s.open && s.soldOut && s.guests.length === 0 && state.keepNet.length === 0) {
+        if (++this.idleSoldOut >= 8) {
+          this.toast('菜都卖完了，今天提前打烊', 'info');
+          this.handleEvents(s.close());
+        }
+      } else {
+        this.idleSoldOut = 0;
+      }
     }
     if (this.service && !this.service.open && this.service.guests.length === 0) this.service = null;
     // 买了新桌子、大菜牌：不在营业的时候重新摆
@@ -618,6 +685,13 @@ export class RestaurantScene extends Scene {
         statusText,
         canOpen: this.canOpen(),
         canSkip: !this.service && !state.servedToday && m < cfg.openMinute,
+        canClose: open,
+        soldOutHint:
+          open && this.service!.soldOut
+            ? state.keepNet.length > 0 && r.tank.length < state.stats.tankCapacity
+              ? `鱼护里还有 ${state.keepNet.length} 条鱼，放进活鱼缸就能接着卖`
+              : '菜都卖完了，可以提前打烊'
+            : '',
         helper: r.helper,
         reputation: Math.round(r.reputation * 10) / 10,
         menu: data.recipes.map((recipe) => ({
@@ -677,7 +751,7 @@ export class RestaurantScene extends Scene {
     this.service?.close();
     window.removeEventListener('keydown', this.onKey);
     this.unsubscribe?.();
-    this.ctx.ui.set({ restaurant: null, cooking: null });
+    this.ctx.ui.set({ restaurant: null, cooking: null, nightReport: null });
     const floor = this.floor;
     this.tank.destroy();
     super.exit();

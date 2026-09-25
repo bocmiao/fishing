@@ -94,6 +94,9 @@ export interface DayStats {
   guests: number;
   /** 小馆的收入（自己掌勺 + 小满代班） */
   restaurantEarned: number;
+  /** 今天钓到的最大的一条（按重量）；没钓到为空 */
+  bestFishSpecies: string;
+  bestFishKg: number;
 }
 
 /** 一天结束时给玩家看的小结 */
@@ -124,6 +127,8 @@ function emptyStats(): DayStats {
     spent: 0,
     guests: 0,
     restaurantEarned: 0,
+    bestFishSpecies: '',
+    bestFishKg: 0,
   };
 }
 
@@ -305,6 +310,10 @@ export class GameState {
   /** 记下一次上鱼（不管放生还是留下，笔记都会记） */
   recordCatch(fish: FishInstance): CatchRecordResult {
     this.today.caught++;
+    if (fish.weightKg > this.today.bestFishKg) {
+      this.today.bestFishKg = fish.weightKg;
+      this.today.bestFishSpecies = fish.speciesId;
+    }
     const prev = this.journal.get(fish.speciesId);
     if (!prev) {
       this.journal.set(fish.speciesId, {

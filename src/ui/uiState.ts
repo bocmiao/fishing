@@ -69,6 +69,8 @@ export interface DaySummaryUi {
   id: number;
   title: string;
   lines: string[];
+  /** 接下来的一个小目标（例如"离「大鱼缸」还差 ¥120"） */
+  goal: string;
   tomorrow: string;
 }
 
@@ -144,6 +146,17 @@ export interface OrderUi {
   cooking: boolean;
 }
 
+/** 打烊时弹出的"今晚的账本" */
+export interface NightReportUi {
+  id: number;
+  title: string;
+  lines: string[];
+  /** 一位客人的话 */
+  quote: string;
+  /** 接下来可以做什么的建议 */
+  hint: string;
+}
+
 export interface RestaurantUi {
   /** prep = 还没开门，open = 营业中，closed = 今天营业过了 */
   status: 'prep' | 'open' | 'closed';
@@ -152,6 +165,10 @@ export interface RestaurantUi {
   canOpen: boolean;
   /** 还没到傍晚：可以在店里忙到开门 */
   canSkip: boolean;
+  /** 营业中：可以提前打烊 */
+  canClose: boolean;
+  /** 菜卖完了时的提示（鱼护里还有鱼就放进缸里接着卖） */
+  soldOutHint: string;
   helper: boolean;
   reputation: number;
   menu: MenuItemUi[];
@@ -224,6 +241,7 @@ export interface UiState {
   pond: PondUi | null;
   farm: FarmUi | null;
   restaurant: RestaurantUi | null;
+  nightReport: NightReportUi | null;
   cooking: CookingUi | null;
   fishing: FishingUi | null;
   fightActive: boolean;
@@ -268,6 +286,7 @@ export const initialUiState: UiState = {
   pond: null,
   farm: null,
   restaurant: null,
+  nightReport: null,
   cooking: null,
   fishing: null,
   fightActive: false,

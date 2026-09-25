@@ -60,6 +60,8 @@ const StatsSchema = z.object({
   spent: z.number().default(0),
   guests: z.number().default(0),
   restaurantEarned: z.number().default(0),
+  bestFishSpecies: z.string().default(''),
+  bestFishKg: z.number().default(0),
 });
 
 const RestaurantSaveSchema = z.object({

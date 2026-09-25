@@ -1,6 +1,7 @@
 import { Application, Container } from 'pixi.js';
 import { getGameData } from '../sim/data/gameData';
 import { Rng } from '../sim/rng/rng';
+import { formatWeight } from '../sim/fishing/catchRoll';
 import { restore, serialize } from '../sim/save';
 import { WEATHER_NAMES, GameState, type DaySummary } from '../sim/state';
 import { SEASON_NAMES } from '../sim/time/clock';
@@ -277,6 +278,8 @@ export class Game {
     const clock = this.state.clock;
     const lines: string[] = [];
     if (s.caught > 0) lines.push(`钓到 ${s.caught} 条鱼，放进鱼护 ${s.kept} 条`);
+    const best = this.state.data.speciesById.get(s.bestFishSpecies);
+    if (best) lines.push(`最大的一条：${best.name} ${formatWeight(s.bestFishKg)}`);
     if (s.worms > 0) lines.push(`在菜地挖到 ${s.worms} 条蚯蚓`);
     if (s.harvested > 0) lines.push(`收获了 ${s.harvested} 份作物`);
     if (summary.bedWorms > 0) lines.push(`蚯蚓床里又多了 ${summary.bedWorms} 条蚯蚓`);
@@ -294,9 +297,22 @@ export class Game {
         id: ++this.summaryId,
         title: `第 ${summary.day + 1} 天结束`,
         lines,
+        goal: this.nextGoal(),
         tomorrow: `第 ${clock.day + 1} 天 · ${SEASON_NAMES[clock.season]} · ${WEATHER_NAMES[summary.weather]}`,
       },
     });
+  }
+
+  /** 下一个小目标：最便宜的、还没买的升级 */
+  private nextGoal(): string {
+    const state = this.state;
+    const next = state.data.upgrades
+      .filter((u) => upgradeStatus(u, state.upgrades) === 'available')
+      .sort((a, b) => a.price - b.price)[0];
+    if (!next) return '';
+    return state.money >= next.price
+      ? `够买「${next.name}」了（按 U 添置）`
+      : `离「${next.name}」还差 ¥${next.price - state.money}`;
   }
 
   /** 地图上各个地方离这里多远 */
