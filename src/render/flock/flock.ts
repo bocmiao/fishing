@@ -113,13 +113,14 @@ export class Flock {
     this.bounds = bounds;
   }
 
-  spawn(length: number): FishAgent {
+  /** 放一条鱼；不给位置就在水里随便找个地方 */
+  spawn(length: number, at?: { x: number; y: number; heading: number }): FishAgent {
     const rng = this.rng;
     const b = this.bounds;
     const m = this.params.boundaryMargin;
-    let x = 0;
-    let y = 0;
-    for (let tries = 0; tries < 20; tries++) {
+    let x = at?.x ?? 0;
+    let y = at?.y ?? 0;
+    for (let tries = 0; !at && tries < 20; tries++) {
       x = rng.range(b.x + m, b.x + b.w - m);
       y = rng.range(b.y + m, b.y + b.h - m);
       if (!this.avoid.some((r) => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h)) break;
@@ -128,7 +129,7 @@ export class Flock {
       id: this.nextId++,
       x,
       y,
-      heading: rng.range(0, TAU),
+      heading: at?.heading ?? rng.range(0, TAU),
       speed: 0,
       cruise: rng.range(22, 42) * (0.8 + length / 400),
       length,

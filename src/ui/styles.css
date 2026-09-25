@@ -654,6 +654,120 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* ---------------------------------------------------------------- 鱼塘 */
+
+.pond-count {
+  position: absolute;
+  left: 32px;
+  bottom: 30px;
+  display: flex;
+  align-items: baseline;
+  padding: 9px 16px;
+}
+
+.keepnet-button {
+  position: absolute;
+  right: 136px;
+  bottom: 30px;
+  padding: 9px 16px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.keepnet-button span {
+  margin-left: 10px;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.keepnet-panel {
+  position: absolute;
+  right: 32px;
+  bottom: 86px;
+  width: 400px;
+  max-height: 560px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.keepnet-panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.keepnet-panel-title span {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.keepnet-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.keepnet-panel li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.keepnet-panel img {
+  width: 92px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.keepnet-fish {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.keepnet-fish span {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.keepnet-panel button {
+  padding: 5px 10px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #fffaf0;
+}
+
+.keepnet-panel button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper) !important;
+}
+
+.keepnet-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.keepnet-panel .keepnet-all {
+  align-self: stretch;
+  padding: 8px;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
 /* ---------------------------------------------------------------- 观鱼模式 */
 
 .watch-button {

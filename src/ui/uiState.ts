@@ -35,6 +35,22 @@ export interface CatchCardUi {
   keepNetFull: boolean;
 }
 
+/** 鱼护里的一条鱼（鱼塘画面的鱼护面板用） */
+export interface KeepFishUi {
+  uid: number;
+  name: string;
+  weightText: string;
+  /** 鱼的图片（data URL） */
+  image: string;
+}
+
+export interface PondUi {
+  name: string;
+  count: number;
+  capacity: number;
+  keepNet: KeepFishUi[];
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -57,6 +73,7 @@ export interface UiState {
   /** 胡须感应：附近有少见的鱼 */
   sense: boolean;
 
+  pond: PondUi | null;
   fishing: FishingUi | null;
   fightActive: boolean;
   tension: number;
@@ -93,6 +110,7 @@ export const initialUiState: UiState = {
   clockText: '',
   toast: null,
   sense: false,
+  pond: null,
   fishing: null,
   fightActive: false,
   tension: 0,

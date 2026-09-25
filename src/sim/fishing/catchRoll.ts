@@ -19,6 +19,8 @@ export interface FishInstance {
   sizeClass: SizeClass;
   /** 是否是特别大的个体 */
   trophy: boolean;
+  /** 长相的随机种子：卡片上、鱼塘里画出来的是同一条鱼 */
+  lookSeed: number;
 }
 
 /** 三角分布：大部分落在 mode 附近，少数接近 min 或 max */
@@ -63,6 +65,7 @@ export function rollFish(species: FishSpecies, rng: Rng): FishInstance {
     lengthCm,
     sizeClass: sizeClassOf(lengthCm),
     trophy,
+    lookSeed: rng.int(1, 1_000_000_000),
   };
 }
 

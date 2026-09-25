@@ -128,8 +128,9 @@ function sumiSpots(rng: Rng, count: number, big = false): PatchBlob[] {
 
 type VarietyMaker = (rng: Rng) => KoiLook;
 
-const VARIETIES: { weight: number; make: VarietyMaker }[] = [
+const VARIETIES: { name: string; weight: number; make: VarietyMaker }[] = [
   {
+    name: '红白',
     weight: 5,
     make: (rng) => {
       const look = baseLook(rng, '红白', whiteTone(rng));
@@ -138,6 +139,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '大正三色',
     weight: 4,
     make: (rng) => {
       const look = baseLook(rng, '大正三色', whiteTone(rng));
@@ -147,6 +149,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '昭和三色',
     weight: 3,
     make: (rng) => {
       const look = baseLook(rng, '昭和三色', INK);
@@ -161,6 +164,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '白写',
     weight: 2,
     make: (rng) => {
       const look = baseLook(rng, '白写', whiteTone(rng));
@@ -171,6 +175,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '丹顶',
     weight: 1.2,
     make: (rng) => {
       const look = baseLook(rng, '丹顶', whiteTone(rng));
@@ -179,6 +184,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '黄金',
     weight: 2,
     make: (rng) => {
       const gold = jitter(rng, hexToRgb(0xe4a33b), 0.06);
@@ -191,6 +197,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '白金',
     weight: 1.5,
     make: (rng) => {
       const look = baseLook(rng, '白金', hexToRgb(0xe9e7dc));
@@ -201,6 +208,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '红鲤',
     weight: 1.5,
     make: (rng) => {
       const red = jitter(rng, hexToRgb(0xd9532f), 0.06);
@@ -210,6 +218,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '乌鲤',
     weight: 1.5,
     make: (rng) => {
       const look = baseLook(rng, '乌鲤', INK);
@@ -219,6 +228,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '茶鲤',
     weight: 1.5,
     make: (rng) => {
       const brown = jitter(rng, hexToRgb(0x9c7048), 0.07);
@@ -232,6 +242,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '落叶',
     weight: 1,
     make: (rng) => {
       const look = baseLook(rng, '落叶', hexToRgb(0x8d9ba2));
@@ -247,6 +258,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '秋翠',
     weight: 1,
     make: (rng) => {
       const look = baseLook(rng, '秋翠', hexToRgb(0xa3b6bf));
@@ -265,6 +277,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '浅黄',
     weight: 1,
     make: (rng) => {
       const look = baseLook(rng, '浅黄', hexToRgb(0x7f97a4));
@@ -282,6 +295,7 @@ const VARIETIES: { weight: number; make: VarietyMaker }[] = [
     },
   },
   {
+    name: '黄鲤',
     weight: 0.8,
     make: (rng) => {
       const yellow = jitter(rng, hexToRgb(0xe6c45a), 0.05);
@@ -297,19 +311,10 @@ export function randomKoiLook(rng: Rng): KoiLook {
   return maker.make(rng);
 }
 
-export const KOI_VARIETY_NAMES = [
-  '红白',
-  '大正三色',
-  '昭和三色',
-  '白写',
-  '丹顶',
-  '黄金',
-  '白金',
-  '红鲤',
-  '乌鲤',
-  '茶鲤',
-  '落叶',
-  '秋翠',
-  '浅黄',
-  '黄鲤',
-] as const;
+export const KOI_VARIETY_NAMES: readonly string[] = VARIETIES.map((v) => v.name);
+
+/** 按品种名画一条锦鲤（外公留下的锦鲤、以后买来的锦鲤）；不认识的品种按红白画 */
+export function koiLookOf(variety: string, rng: Rng): KoiLook {
+  const maker = VARIETIES.find((v) => v.name === variety) ?? VARIETIES[0]!;
+  return maker.make(rng);
+}

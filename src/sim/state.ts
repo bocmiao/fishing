@@ -1,7 +1,7 @@
 import type { GameData } from './data/gameData';
 import type { Weather } from './data/schema';
 import type { FishInstance } from './fishing/catchRoll';
-import { Rng } from './rng/rng';
+import { hashString, Rng } from './rng/rng';
 import { GameClock, type Season } from './time/clock';
 
 export const WEATHER_NAMES: Record<Weather, string> = { sunny: '晴', cloudy: '多云', rain: '雨' };
@@ -40,6 +40,26 @@ export interface CaughtFish extends FishInstance {
   positionId: string;
 }
 
+/** 鱼塘里的一条鱼 */
+export interface PondFish {
+  /** 编号：钓上来的鱼沿用原来的编号；开局的锦鲤用负数，不会撞号 */
+  uid: number;
+  /** 野生鱼的品种 id；外公的锦鲤为 null */
+  speciesId: string | null;
+  /** 锦鲤品种（红白、黄金……）；野生鱼为 null */
+  variety: string | null;
+  /** 显示的名字：锦鲤有名字，野生鱼就是品种名 */
+  name: string;
+  weightKg: number;
+  lengthCm: number;
+  lookSeed: number;
+  /** 来历，例如"外公留下的""第 2 天 · 屋后小溪" */
+  origin: string;
+  note: string;
+  /** 放进塘里的那天 */
+  day: number;
+}
+
 export interface JournalEntry {
   caught: number;
   bestWeightKg: number;
@@ -63,6 +83,9 @@ export class GameState {
   money = 0;
   readonly keepNet: CaughtFish[] = [];
   keepNetCapacity: number;
+  /** 自家鱼塘：开局只有外公留下的两条锦鲤，钓到的鱼可以放进来养 */
+  readonly pond: PondFish[] = [];
+  pondCapacity: number;
   readonly journal = new Map<string, JournalEntry>();
   baitId: string;
   rodId: string;
@@ -77,6 +100,21 @@ export class GameState {
     this.clock = new GameClock();
     this.weather = rollWeather(this.clock.season, this.rng);
     this.keepNetCapacity = data.items.keepNetCapacity;
+    this.pondCapacity = data.pond.capacity;
+    data.pond.starters.forEach((k, i) => {
+      this.pond.push({
+        uid: -(i + 1),
+        speciesId: null,
+        variety: k.variety,
+        name: k.name,
+        weightKg: k.weightKg,
+        lengthCm: k.lengthCm,
+        lookSeed: hashString(`koi:${k.name}`),
+        origin: '外公留下的',
+        note: k.note,
+        day: 0,
+      });
+    });
     this.baitId = data.items.baits[0]!.id;
     this.rodId = data.items.rods[0]!.id;
     this.lineId = data.items.lines[0]!.id;
@@ -121,6 +159,42 @@ export class GameState {
       spotId,
       positionId,
     });
+    return true;
+  }
+
+  get pondFull(): boolean {
+    return this.pond.length >= this.pondCapacity;
+  }
+
+  /** 把鱼护里的一条鱼放进自家鱼塘；塘满了或找不到这条鱼返回 null */
+  releaseToPond(uid: number): PondFish | null {
+    if (this.pondFull) return null;
+    const i = this.keepNet.findIndex((f) => f.uid === uid);
+    if (i < 0) return null;
+    const [f] = this.keepNet.splice(i, 1) as [CaughtFish];
+    const species = this.data.speciesById.get(f.speciesId);
+    const spotName = this.data.spotById.get(f.spotId)?.name ?? '';
+    const fish: PondFish = {
+      uid: f.uid,
+      speciesId: f.speciesId,
+      variety: null,
+      name: species?.name ?? f.speciesId,
+      weightKg: f.weightKg,
+      lengthCm: f.lengthCm,
+      lookSeed: f.lookSeed,
+      origin: `第 ${f.day + 1} 天 · ${spotName}`,
+      note: species?.note ?? '',
+      day: this.clock.day,
+    };
+    this.pond.push(fish);
+    return fish;
+  }
+
+  /** 把鱼护里的一条鱼放生 */
+  releaseToWild(uid: number): boolean {
+    const i = this.keepNet.findIndex((f) => f.uid === uid);
+    if (i < 0) return false;
+    this.keepNet.splice(i, 1);
     return true;
   }
 

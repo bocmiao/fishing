@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { GameCommand } from '../app/commands';
 import type { Store } from '../app/store';
-import type { CatchCardUi, FishingUi, UiState } from './uiState';
+import type { CatchCardUi, FishingUi, PondUi, UiState } from './uiState';
 
 type Send = (cmd: GameCommand) => void;
 
@@ -59,7 +59,7 @@ function NavButton({ scene, send }: { scene: string; send: Send }) {
   if (scene === 'fishing') {
     return (
       <button className="nav-button card" onClick={() => send({ type: 'goto', scene: 'pond' })}>
-        ← 回锦鲤池
+        ← 回方塘
       </button>
     );
   }
@@ -68,13 +68,71 @@ function NavButton({ scene, send }: { scene: string; send: Send }) {
 
 function PondHud({ store, send }: { store: Store<UiState>; send: Send }) {
   const hint = useUi(store, (s) => s.hint);
+  const pond = useUi(store, (s) => s.pond);
+  const [open, setOpen] = useState(false);
+  const hasFish = (pond?.keepNet.length ?? 0) > 0;
   return (
     <>
       {hint && <div className="hint card">{hint}</div>}
+      {pond && (
+        <div className="pond-count card">
+          <div className="keepnet-label">{pond.name}</div>
+          <div className="keepnet-count">
+            {pond.count}
+            <span>/{pond.capacity} 条</span>
+          </div>
+        </div>
+      )}
+      {pond && hasFish && (
+        <button className="keepnet-button card" onClick={() => setOpen(!open)}>
+          鱼护里有 {pond.keepNet.length} 条鱼
+          <span>{open ? '收起' : '看看'}</span>
+        </button>
+      )}
+      {pond && hasFish && open && <KeepNetPanel pond={pond} send={send} />}
       <button className="watch-button card" onClick={() => send({ type: 'toggleWatch' })}>
         观鱼
       </button>
     </>
+  );
+}
+
+function KeepNetPanel({ pond, send }: { pond: PondUi; send: Send }) {
+  const room = pond.capacity - pond.count;
+  return (
+    <div className="keepnet-panel card">
+      <div className="keepnet-panel-title">
+        鱼护
+        <span>{room > 0 ? `塘里还能养 ${room} 条` : '塘里满了，以后可以扩建鱼塘'}</span>
+      </div>
+      <ul>
+        {pond.keepNet.map((f) => (
+          <li key={f.uid}>
+            <img src={f.image} alt={f.name} />
+            <div className="keepnet-fish">
+              <b>{f.name}</b>
+              <span>{f.weightText}</span>
+            </div>
+            <button
+              className="primary"
+              disabled={room <= 0}
+              onClick={() => send({ type: 'releaseToPond', uid: f.uid })}
+            >
+              放进塘里
+            </button>
+            <button onClick={() => send({ type: 'releaseToWild', uid: f.uid })}>放生</button>
+          </li>
+        ))}
+      </ul>
+      {pond.keepNet.length > 1 && room > 0 && (
+        <button
+          className="primary keepnet-all"
+          onClick={() => send({ type: 'releaseToPond', uid: 'all' })}
+        >
+          全部放进塘里
+        </button>
+      )}
+    </div>
   );
 }
 

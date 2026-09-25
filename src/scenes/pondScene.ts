@@ -1,17 +1,23 @@
 import {
   Container,
   Rectangle,
+  Text,
   Texture,
   type FederatedPointerEvent,
   type RenderTexture,
 } from 'pixi.js';
+import type { GameCommand } from '../app/commands';
 import { Scene, type SceneContext, type ViewSize } from '../app/scene';
-import type { Rng } from '../sim/rng/rng';
+import { formatWeight } from '../sim/fishing/catchRoll';
+import { Rng } from '../sim/rng/rng';
+import type { PondFish } from '../sim/state';
 import { TopDownCat } from '../render/cat/topDownCat';
 import { FishAtlas } from '../render/fish/fishAtlas';
 import { FishBody } from '../render/fish/fishBody';
-import { FISH_TEX_H, FISH_TEX_W } from '../render/fish/koiPainter';
-import { randomKoiLook, type KoiLook } from '../render/fish/koiLook';
+import { renderFishImage } from '../render/fish/fishImage';
+import type { KoiLook } from '../render/fish/koiLook';
+import { pondFishLook } from '../render/fish/pondFishLook';
+import { speciesLook } from '../render/fish/speciesLook';
 import { Flock, type FishAgent } from '../render/flock/flock';
 import { ambientAt } from '../render/fx/ambient';
 import { PelletField } from '../render/fx/pellets';
@@ -30,13 +36,17 @@ interface Koi {
   agent: FishAgent;
   body: FishBody;
   look: KoiLook;
+  fish: PondFish;
 }
 
-const FISH_COUNT = 64;
 const DEEP_TINT = hexToRgb(0x6a9a84);
+/** 一次放好几条鱼时，每条之间隔多久（秒） */
+const RELEASE_INTERVAL = 0.45;
+const TAG_SECONDS = 3.5;
 
 /**
- * 鱼塘画面（M0 技术验证）：锦鲤群游、点击撒饲料、观鱼模式。
+ * 自家鱼塘：外公留下的锦鲤和自己钓回来的鱼在这里养着。
+ * 点击水面撒饲料，点一条鱼看它是谁；鱼护里的鱼可以放进来；H 观鱼模式。
  */
 export class PondScene extends Scene {
   private rng!: Rng;
@@ -56,6 +66,34 @@ export class PondScene extends Scene {
   private deck!: Deck;
   private cat!: TopDownCat;
   private post!: PostOverlay;
+  /** 点鱼时浮在它头上的名牌：名字 + 一行小字（品种、来历） */
+  private readonly tag = new Container();
+  private readonly tagName = new Text({
+    text: '',
+    style: {
+      fontFamily: 'Noto Serif SC, serif',
+      fontSize: 24,
+      fontWeight: '600',
+      fill: 0xf5ebdb,
+      stroke: { color: 0x1c3a3a, width: 5 },
+    },
+  });
+  private readonly tagDetail = new Text({
+    text: '',
+    style: {
+      fontFamily: 'Noto Serif SC, serif',
+      fontSize: 15,
+      fill: 0xe6e9de,
+      stroke: { color: 0x1c3a3a, width: 4 },
+    },
+  });
+  private tagged: Koi | null = null;
+  private tagTime = 0;
+  private readonly releaseQueue: number[] = [];
+  private releaseTimer = 0;
+  /** 鱼护面板里的鱼图，按编号缓存 */
+  private readonly images = new Map<number, string>();
+  private toastId = 0;
   private pelletsEaten = 0;
   private ambientTimer = 0;
   private uiTimer = 0;
@@ -81,8 +119,7 @@ export class PondScene extends Scene {
     this.flock.avoid = [this.deck.rect];
 
     this.atlas = new FishAtlas();
-    const fishRng = this.rng.fork('fish');
-    for (let i = 0; i < FISH_COUNT; i++) this.addKoi(randomKoiLook(fishRng), fishRng);
+    for (const f of this.ctx.state.pond) this.addFish(f);
     this.atlas.flush();
 
     this.pellets = new PelletField(this.rng.fork('pellets'));
@@ -94,6 +131,11 @@ export class PondScene extends Scene {
     this.cat.root.position.set(w / 2, h - 88);
 
     this.post = new PostOverlay(w, h);
+    this.tagName.anchor.set(0.5, 1);
+    this.tagDetail.anchor.set(0.5, 1);
+    this.tagName.y = -22;
+    this.tag.addChild(this.tagName, this.tagDetail);
+    this.tag.visible = false;
 
     this.fishLayer.sortableChildren = true;
     this.shadowLayer.addChild(this.lilies.shadows, this.pellets.shadows, this.deck.shadow);
@@ -102,6 +144,7 @@ export class PondScene extends Scene {
       this.lilies.surface,
       this.pellets.surface,
       this.specks.container,
+      this.tag,
     );
     this.root.addChild(
       this.water.mesh,
@@ -117,19 +160,20 @@ export class PondScene extends Scene {
     this.root.hitArea = new Rectangle(0, 0, w, h);
     this.root.on('pointerdown', (e: FederatedPointerEvent) => {
       const p = e.getLocalPosition(this.root);
-      this.feed(p.x, p.y);
+      const hit = this.fishAt(p.x, p.y);
+      if (hit) this.showTag(hit);
+      else this.feed(p.x, p.y);
     });
     window.addEventListener('keydown', this.onKey);
-    this.unsubscribe = this.ctx.commands.on((cmd) => {
-      if (cmd.type === 'toggleWatch') this.toggleWatch();
-    });
+    this.unsubscribe = this.ctx.commands.on((cmd) => this.handleCommand(cmd));
 
+    const state = this.ctx.state;
     this.ctx.ui.set({
       scene: 'pond',
-      sceneTitle: '锦鲤池',
+      sceneTitle: state.data.pond.name,
       sceneSubtitle: '',
       clockText: this.clockText(),
-      hint: '点击水面撒鱼食　·　H 观鱼模式',
+      hint: '点击水面撒鱼食　·　点一条鱼看看它是谁　·　H 观鱼模式',
       fishing: null,
       fightActive: false,
       catchCard: null,
@@ -139,17 +183,129 @@ export class PondScene extends Scene {
       watchMode: false,
       debug: this.ctx.params.debug,
     });
+    this.pushPondUi();
+    if (state.keepNet.length > 0) {
+      this.toast(`鱼护里有 ${state.keepNet.length} 条鱼，可以放进塘里养`, 'info');
+    } else if (state.pond.every((f) => f.speciesId === null)) {
+      this.toast('塘里只有外公留下的两条锦鲤……去屋后小溪钓些鱼回来养吧', 'info');
+    }
   }
 
-  private addKoi(look: KoiLook, rng: Rng): void {
+  private addFish(fish: PondFish, at?: { x: number; y: number; heading: number }): Koi {
+    const { look, length, aspect } = pondFishLook(fish, this.ctx.state.data);
     const texture = this.atlas.add(look);
-    const length = Math.max(68, Math.min(150, rng.normal(104, 20)));
-    const agent = this.flock.spawn(length);
-    const body = new FishBody(texture, this.atlas.shadow, length, FISH_TEX_H / FISH_TEX_W);
+    const agent = this.flock.spawn(length, at);
+    const body = new FishBody(texture, this.atlas.shadowFor(look.shape ?? 'carp'), length, aspect);
     body.place(agent.x, agent.y, agent.heading);
     this.shadowLayer.addChild(body.shadow);
     this.fishLayer.addChild(body.mesh);
-    this.koi.push({ agent, body, look });
+    const koi = { agent, body, look, fish };
+    this.koi.push(koi);
+    return koi;
+  }
+
+  private handleCommand(cmd: GameCommand): void {
+    const state = this.ctx.state;
+    if (cmd.type === 'toggleWatch') {
+      this.toggleWatch();
+    } else if (cmd.type === 'releaseToPond') {
+      const uids = cmd.uid === 'all' ? state.keepNet.map((f) => f.uid) : [cmd.uid];
+      for (const uid of uids) if (!this.releaseQueue.includes(uid)) this.releaseQueue.push(uid);
+      if (state.pond.length + this.releaseQueue.length > state.pondCapacity)
+        this.toast(`塘里最多养 ${state.pondCapacity} 条，放不下的先留在鱼护里`, 'info');
+    } else if (cmd.type === 'releaseToWild') {
+      if (state.releaseToWild(cmd.uid)) {
+        this.images.delete(cmd.uid);
+        this.toast('放回小溪了，快快长大吧', 'info');
+        this.pushPondUi();
+      }
+    }
+  }
+
+  /** 从栈台前放一条鱼下水 */
+  private releaseOne(uid: number): void {
+    const state = this.ctx.state;
+    const fish = state.releaseToPond(uid);
+    if (!fish) return;
+    this.images.delete(uid);
+    const d = this.deck.rect;
+    const x = d.x + d.w / 2 + this.rng.range(-d.w * 0.35, d.w * 0.35);
+    const y = d.y - 26;
+    const koi = this.addFish(fish, { x, y, heading: -Math.PI / 2 + this.rng.range(-0.5, 0.5) });
+    this.atlas.flush();
+    koi.agent.depth = 0.02;
+    koi.agent.effort = 1;
+    this.ripples.add(x, y, 1, 2.2, 5);
+    this.ripples.add(x, y - 20, 0.5, 1.4, 2);
+    const cat = this.cat.root.position;
+    this.cat.lookAt(x - cat.x, y - cat.y);
+    this.cat.toss();
+    this.toast(
+      `${fish.name}游进了${state.data.pond.name}（${state.pond.length}/${state.pondCapacity}）`,
+      'good',
+    );
+    this.pushPondUi();
+  }
+
+  /** 点到的鱼（离点击位置最近、且在身体范围内的那条） */
+  private fishAt(x: number, y: number): Koi | null {
+    let best: Koi | null = null;
+    let bestD = Infinity;
+    for (const k of this.koi) {
+      const a = k.agent;
+      // agent 的位置是鱼头，身体中心在头后面半个身长
+      const cx = a.x - Math.cos(a.heading) * a.length * 0.4;
+      const cy = a.y - Math.sin(a.heading) * a.length * 0.4;
+      const d = Math.hypot(x - cx, y - cy);
+      if (d < Math.max(28, a.length * 0.5) && d < bestD) {
+        best = k;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  private showTag(k: Koi): void {
+    const f = k.fish;
+    const detail = f.variety
+      ? `${f.variety}锦鲤 · ${f.origin}`
+      : `${formatWeight(f.weightKg)} · ${f.origin}`;
+    this.tagName.text = f.name;
+    this.tagDetail.text = detail;
+    this.tagged = k;
+    this.tagTime = TAG_SECONDS;
+  }
+
+  private pushPondUi(): void {
+    const state = this.ctx.state;
+    this.ctx.ui.set({
+      pond: {
+        name: state.data.pond.name,
+        count: state.pond.length,
+        capacity: state.pondCapacity,
+        keepNet: state.keepNet.map((f) => ({
+          uid: f.uid,
+          name: state.data.speciesById.get(f.speciesId)?.name ?? f.speciesId,
+          weightText: formatWeight(f.weightKg),
+          image: this.imageFor(f.uid, f.speciesId, f.lookSeed),
+        })),
+      },
+      fishCount: this.koi.length,
+    });
+  }
+
+  private imageFor(uid: number, speciesId: string, lookSeed: number): string {
+    let url = this.images.get(uid);
+    const species = this.ctx.state.data.speciesById.get(speciesId);
+    if (!url && species) {
+      url = renderFishImage(speciesLook(species, new Rng(lookSeed)), 0.7);
+      this.images.set(uid, url);
+    }
+    return url ?? '';
+  }
+
+  private toast(text: string, tone: 'good' | 'bad' | 'info'): void {
+    this.ctx.ui.set({ toast: { id: ++this.toastId, text, tone } });
   }
 
   /** 撒一把鱼食 */
@@ -227,6 +383,29 @@ export class PondScene extends Scene {
       }
     }
 
+    // 一条一条地放鱼下水
+    this.releaseTimer -= dt;
+    if (this.releaseQueue.length > 0 && this.releaseTimer <= 0) {
+      this.releaseTimer = RELEASE_INTERVAL;
+      const uid = this.releaseQueue.shift()!;
+      if (state.pondFull) this.releaseQueue.length = 0;
+      else this.releaseOne(uid);
+    }
+
+    // 名牌跟着鱼走，时间到了淡出
+    if (this.tagged && this.tagTime > 0) {
+      this.tagTime -= dt;
+      const a = this.tagged.agent;
+      const cx = a.x - Math.cos(a.heading) * a.length * 0.4;
+      const cy = a.y - Math.sin(a.heading) * a.length * 0.4;
+      this.tag.position.set(cx, cy - a.length * 0.3 - 10);
+      this.tag.alpha = Math.min(1, this.tagTime / 0.5, (TAG_SECONDS - this.tagTime) / 0.2);
+      this.tag.visible = true;
+    } else {
+      this.tagged = null;
+      this.tag.visible = false;
+    }
+
     this.pellets.update(dt);
     this.ripples.update(dt);
     this.lilies.update(dt);
@@ -242,7 +421,6 @@ export class PondScene extends Scene {
     if (this.uiTimer <= 0) {
       this.uiTimer = 0.5;
       this.ctx.ui.set({
-        fishCount: this.koi.length,
         pelletsEaten: this.pelletsEaten,
         clockText: this.clockText(),
       });
@@ -268,7 +446,7 @@ export class PondScene extends Scene {
   override exit(): void {
     window.removeEventListener('keydown', this.onKey);
     this.unsubscribe?.();
-    this.ctx.ui.set({ watchMode: false });
+    this.ctx.ui.set({ watchMode: false, pond: null });
     // 先销毁显示对象，再销毁它们用到的纹理
     this.water.setBed(Texture.EMPTY);
     super.exit();

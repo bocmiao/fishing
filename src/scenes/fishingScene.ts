@@ -24,7 +24,7 @@ import { DEFAULT_FIGHT_PARAMS, Fight, type FightParams } from '../sim/fishing/fi
 import { ReelCrank } from '../sim/fishing/reel';
 import { pickSpecies } from '../sim/fishing/spawn';
 import { zoneAt } from '../sim/fishing/zones';
-import type { Rng } from '../sim/rng/rng';
+import { Rng } from '../sim/rng/rng';
 import { SEASON_NAMES } from '../sim/time/clock';
 import { WEATHER_NAMES } from '../sim/state';
 import { TopDownCat } from '../render/cat/topDownCat';
@@ -742,7 +742,7 @@ export class FishingScene extends Scene {
     const f = this.hooked!;
     const state = this.ctx.state;
     const record = state.recordCatch(f.fish);
-    const look = speciesLook(f.species, this.rng.fork(f.fish.uid));
+    const look = speciesLook(f.species, new Rng(f.fish.lookSeed));
     const sp = f.species;
     const t = (f.fish.weightKg - sp.weightKg.min) / (sp.weightKg.max - sp.weightKg.min || 1);
     const price = Math.round(
@@ -792,7 +792,8 @@ export class FishingScene extends Scene {
     const state = this.ctx.state;
     const f = this.landed;
     if (keep && state.keep(f.fish, this.spot.id, this.position.id)) {
-      this.toast(`放进鱼护（${state.keepNet.length}/${state.keepNetCapacity}）`, 'good');
+      const tip = state.keepNet.length === 1 ? '，回方塘可以放进塘里养' : '';
+      this.toast(`放进鱼护（${state.keepNet.length}/${state.keepNetCapacity}）${tip}`, 'good');
     } else {
       this.toast(keep ? '鱼护满了，只好放生' : '放生了，快快长大吧', 'info');
       this.ripples.add(this.catX + 40, this.waterBottom - 10, 0.8, 1.6, 3);

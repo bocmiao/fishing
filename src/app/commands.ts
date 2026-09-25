@@ -7,6 +7,10 @@ export type GameCommand =
   | { type: 'selectPosition'; positionId: string }
   | { type: 'catchDecision'; keep: boolean }
   | { type: 'toggleWatch' }
+  /** 鱼护里的鱼放进自家鱼塘（all = 能放的全放） */
+  | { type: 'releaseToPond'; uid: number | 'all' }
+  /** 鱼护里的鱼放生 */
+  | { type: 'releaseToWild'; uid: number }
   | {
       type: 'debug';
       action: 'addHour' | 'cycleWeather' | 'sleep' | 'spawnRare' | 'setParam';

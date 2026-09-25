@@ -134,3 +134,21 @@ export type Items = z.infer<typeof ItemsSchema>;
 export type Bait = Items['baits'][number];
 export type Rod = Items['rods'][number];
 export type FishingLine = Items['lines'][number];
+
+export const PondSchema = z.object({
+  name: z.string(),
+  /** 塘里最多养几条鱼（以后扩建鱼塘可以变大） */
+  capacity: z.number().int().positive(),
+  /** 开局时塘里就有的鱼：外公留下的锦鲤 */
+  starters: z.array(
+    z.object({
+      /** 锦鲤品种名，要和画笔里的品种对得上（红白、黄金……） */
+      variety: z.string(),
+      name: z.string(),
+      weightKg: z.number().positive(),
+      lengthCm: z.number().positive(),
+      note: z.string(),
+    }),
+  ),
+});
+export type PondConfig = z.infer<typeof PondSchema>;
