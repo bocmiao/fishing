@@ -148,18 +148,28 @@ const METER_MAX = 1.2;
 function TensionMeter({ store }: { store: Store<UiState> }) {
   const tension = useUi(store, (s) => s.tension);
   const stamina = useUi(store, (s) => s.stamina);
+  const reel = useUi(store, (s) => s.reel);
   const side = useUi(store, (s) => s.sideHint);
+  const touch = useUi(store, (s) => s.touch);
+  const snag = useUi(store, (s) => s.snag);
   const danger = tension > 0.85;
   const slack = tension < 0.12;
   const pct = (v: number) => `${(Math.min(METER_MAX, v) / METER_MAX) * 100}%`;
+  const mash = touch ? '连点屏幕' : '狂按空格';
+  const state =
+    snag > 0.25
+      ? '鱼往水草里钻，快往反方向带竿！'
+      : danger
+        ? '太紧了，停一停！'
+        : slack
+          ? `线松了，${mash}！`
+          : '稳住';
   return (
-    <div className={`meter${danger ? ' is-danger' : ''}${slack ? ' is-slack' : ''}`}>
+    <div className={`meter${danger || snag > 0.25 ? ' is-danger' : ''}${slack ? ' is-slack' : ''}`}>
       <div className="meter-main">
         <div className="meter-label">
           <span>张力</span>
-          <span className="meter-state">
-            {danger ? '太紧了，快松手！' : slack ? '线松了，快收线！' : '稳住'}
-          </span>
+          <span className="meter-state">{state}</span>
         </div>
         <div className="meter-bar">
           <div className="zone slack" style={{ left: 0, width: pct(0.12) }} />
@@ -178,16 +188,29 @@ function TensionMeter({ store }: { store: Store<UiState> }) {
           <div className="zone snap" style={{ left: pct(1), right: 0 }} />
           <div className="meter-marker" style={{ left: pct(tension) }} />
         </div>
-        <div className="stamina">
-          <span>鱼的体力</span>
-          <div className="stamina-bar">
-            <div style={{ width: `${Math.round(stamina * 100)}%` }} />
+        <div className="gauges">
+          <div className="gauge reel">
+            <span>收线</span>
+            <div className="gauge-bar">
+              <div style={{ width: `${Math.round(reel * 100)}%` }} />
+            </div>
           </div>
+          <div className="gauge stamina">
+            <span>鱼的体力</span>
+            <div className="gauge-bar">
+              <div style={{ width: `${Math.round(stamina * 100)}%` }} />
+            </div>
+          </div>
+        </div>
+        <div className="meter-help">
+          {touch
+            ? '连点屏幕收线，停手放线 · 点在哪边，竿就往哪边带'
+            : '狂按空格收线，停手放线 · 鼠标往鱼窜的反方向带竿'}
         </div>
       </div>
       <div className="meter-side">
-        {side < 0 && <span>← 鼠标往左带</span>}
-        {side > 0 && <span>鼠标往右带 →</span>}
+        {side < 0 && <span>{touch ? '← 点左边带竿' : '← 鼠标往左带'}</span>}
+        {side > 0 && <span>{touch ? '点右边带竿 →' : '鼠标往右带 →'}</span>}
       </div>
     </div>
   );
@@ -285,6 +308,8 @@ const TUNING_KEYS: { key: string; label: string; min: number; max: number; step:
   { key: 'swimSpeed', label: '鱼往外游的速度', min: 30, max: 250, step: 5 },
   { key: 'holdRange', label: '有力气时保持的距离', min: 0, max: 500, step: 10 },
   { key: 'leverage', label: '反方向带竿卸力', min: 0, max: 0.8, step: 0.01 },
+  { key: 'snagRate', label: '钻底时钻草速度', min: 0, max: 2, step: 0.05 },
+  { key: 'lowDrain', label: '张力偏低时体力消耗', min: 0, max: 1, step: 0.05 },
 ];
 
 function TuningPanel({ store, send }: { store: Store<UiState>; send: Send }) {

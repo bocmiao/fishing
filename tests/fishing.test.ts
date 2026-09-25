@@ -4,6 +4,7 @@ import type { FishSpecies } from '../src/sim/data/schema';
 import { planBite, strikeQuality } from '../src/sim/fishing/bite';
 import { formatWeight, rollFish, triangular } from '../src/sim/fishing/catchRoll';
 import { Fight, type FightInput } from '../src/sim/fishing/fight';
+import { ReelCrank } from '../src/sim/fishing/reel';
 import { pickSpecies, spawnTable, spawnWeight } from '../src/sim/fishing/spawn';
 import { zoneAt } from '../src/sim/fishing/zones';
 import { Rng } from '../src/sim/rng/rng';
@@ -141,21 +142,43 @@ describe('咬钩', () => {
   });
 });
 
-/** 一个简单的"机器人钓手"：张力低了就收线，高了就放线，竿子往鱼窜的反方向带 */
-function botInput(fight: Fight): FightInput {
-  const s = fight.state;
-  return { reeling: s.tension < 0.62, rodSide: -Math.sign(s.lateral) };
+const DT = 1 / 60;
+
+/** 连按空格的手：想收线时每秒按 rate 下，不想收就停手 */
+function masher(rate: number): (want: boolean) => number {
+  const crank = new ReelCrank();
+  let next = 0;
+  return (want) => {
+    next -= DT;
+    if (want && next <= 0) {
+      crank.press();
+      next += 1 / rate;
+    }
+    if (!want) next = 0;
+    crank.update(DT);
+    return crank.intensity;
+  };
+}
+
+/** 一个简单的"机器人钓手"：张力低了就狂按收线，高了就停手，竿子往鱼窜的反方向带 */
+function botInput(): (f: Fight) => FightInput {
+  const hand = masher(8);
+  return (f) => {
+    const s = f.state;
+    return { reel: hand(s.tension < 0.62), rodSide: -Math.sign(s.lateral) };
+  };
 }
 
 /** 有反应延迟的钓手：看到的是 delay 秒之前的状态 */
 function delayed(delay: number, counter: boolean): (f: Fight) => FightInput {
   const history: { t: number; tension: number; lateral: number }[] = [];
+  const hand = masher(7);
   return (f) => {
     const t = f.state.elapsed;
     history.push({ t, tension: f.state.tension, lateral: f.state.lateral });
     while (history.length > 1 && history[1]!.t <= t - delay) history.shift();
     const seen = history[0]!;
-    return { reeling: seen.tension < 0.75, rodSide: counter ? -Math.sign(seen.lateral) : 0 };
+    return { reel: hand(seen.tension < 0.75), rodSide: counter ? -Math.sign(seen.lateral) : 0 };
   };
 }
 
@@ -171,11 +194,34 @@ function runFight(
     { species: sp, fish, distance: 480, reelSpeed: 150, lineStrength: 1, hookQuality: 0.7 },
     rng,
   );
-  const dt = 1 / 60;
-  for (let t = 0; t < maxSeconds && !fight.state.outcome; t += dt)
-    fight.step(dt, controller(fight));
+  for (let t = 0; t < maxSeconds && !fight.state.outcome; t += DT)
+    fight.step(DT, controller(fight));
   return { outcome: fight.state.outcome, time: fight.state.elapsed };
 }
+
+describe('摇线轮', () => {
+  const settle = (rate: number) => {
+    const hand = masher(rate);
+    let v = 0;
+    for (let t = 0; t < 3; t += DT) v = hand(true);
+    return v;
+  };
+
+  it('按得越快收得越猛，按到一定速度就封顶', () => {
+    expect(settle(3)).toBeLessThan(settle(6));
+    expect(settle(6)).toBeLessThan(settle(9));
+    expect(settle(9)).toBeGreaterThan(0.85);
+    expect(settle(20)).toBe(1);
+  });
+
+  it('停手后很快松下来', () => {
+    const hand = masher(8);
+    for (let t = 0; t < 2; t += DT) hand(true);
+    let v = 1;
+    for (let t = 0; t < 1.2; t += DT) v = hand(false);
+    expect(v).toBeLessThan(0.1);
+  });
+});
 
 describe('遛鱼', () => {
   it('会操作的话，每种鱼都能钓上来，时间合理', () => {
@@ -183,7 +229,7 @@ describe('遛鱼', () => {
       let landed = 0;
       const times: number[] = [];
       for (let i = 0; i < 40; i++) {
-        const r = runFight(sp, 100 + i, botInput);
+        const r = runFight(sp, 100 + i, botInput());
         if (r.outcome === 'landed') {
           landed++;
           times.push(r.time);
@@ -198,14 +244,14 @@ describe('遛鱼', () => {
   });
 
   it('一直不收线，鱼会脱钩', () => {
-    const r = runFight(species('crucian'), 1, () => ({ reeling: false, rodSide: 0 }));
+    const r = runFight(species('crucian'), 1, () => ({ reel: 0, rodSide: 0 }));
     expect(r.outcome).toBe('escaped');
   });
 
   it('大力的鱼一直死拉，鱼线会断', () => {
     let snapped = 0;
     for (let i = 0; i < 20; i++) {
-      const r = runFight(species('swamp_eel'), 200 + i, () => ({ reeling: true, rodSide: 0 }));
+      const r = runFight(species('swamp_eel'), 200 + i, () => ({ reel: 1, rodSide: 0 }));
       if (r.outcome === 'snapped') snapped++;
     }
     expect(snapped).toBeGreaterThan(10);
@@ -221,5 +267,25 @@ describe('遛鱼', () => {
     }
     expect(withCounter).toBeGreaterThan(24);
     expect(without).toBeLessThan(withCounter / 2);
+  });
+
+  it('不往反方向带竿，钻底的鱼会钻进水草把线挂断', () => {
+    const outcomes = Array.from(
+      { length: 20 },
+      (_, i) => runFight(species('swamp_eel'), 400 + i, delayed(0.35, false)).outcome,
+    );
+    expect(outcomes.filter((o) => o === 'snagged').length).toBeGreaterThan(8);
+  });
+
+  it('手慢一点（每秒按 3~4 下）也能把常见的鱼遛上来，只是慢', () => {
+    const slow = (): ((f: Fight) => FightInput) => {
+      const hand = masher(3.5);
+      return (f) => ({ reel: hand(f.state.tension < 0.75), rodSide: -Math.sign(f.state.lateral) });
+    };
+    for (let i = 0; i < 10; i++) {
+      const r = runFight(species('crucian'), 500 + i, slow());
+      expect(r.outcome).toBe('landed');
+      expect(r.time).toBeLessThan(60);
+    }
   });
 });

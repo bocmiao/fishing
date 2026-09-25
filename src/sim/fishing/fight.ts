@@ -5,9 +5,10 @@ import type { FishInstance } from './catchRoll';
 /**
  * 遛鱼：张力小游戏的规则。纯逻辑，按固定时间步推进，方便测试和调参。
  *
- * 玩家按住收线，张力朝"收线目标"上升；松开放线，张力朝"放线目标"下降。
+ * 玩家连按空格收线，按得越快张力越朝"收线目标"上升；停手就放线，张力朝"放线目标"下降。
  * 两个目标都随鱼的拉力变化：鱼猛冲时，一直收线张力就会冲进红区。
  * 张力保持在安全区间里，鱼的体力持续下降；鱼乏了就能拉到岸边。
+ * 钻底的鱼会往水草里钻：得把竿子往它窜的反方向带，不然线挂进草里就断了。
  */
 
 export interface FightParams {
@@ -34,12 +35,20 @@ export interface FightParams {
   breakGrace: number;
   /** 体力消耗倍率 */
   staminaDrain: number;
+  /** 张力偏低（松线线以上、安全区以下）时，体力按安全区的几成消耗：手慢也能慢慢把鱼遛乏 */
+  lowDrain: number;
+  /** 竿子带对了方向，体力额外多消耗几成（侧向的力最累鱼） */
+  steerDrain: number;
   /** 鱼往外游的速度（像素 / 秒，按拉力 1 计） */
   swimSpeed: number;
   /** 鱼还有力气时，离岸最近也要保持的距离范围（像素）：体力越少，越能拉近 */
   holdRange: number;
   /** 竿子往反方向带时，最多能抵消多少拉力 */
   leverage: number;
+  /** 鱼钻底时，没往反方向带竿，"钻草"每秒涨多少（涨满线就挂断） */
+  snagRate: number;
+  /** 往反方向带竿（或鱼不钻了）时，"钻草"每秒退多少 */
+  snagRelease: number;
   /** 离岸这么近（像素）就算拉上来了 */
   landDistance: number;
   /** 最长出线（像素），线放完了张力会猛增 */
@@ -47,11 +56,11 @@ export interface FightParams {
 }
 
 export const DEFAULT_FIGHT_PARAMS: FightParams = {
-  riseRate: 0.9,
+  riseRate: 1.4,
   pullRiseRate: 2.0,
   fallRate: 1.3,
-  reelBase: 0.42,
-  reelPullGain: 0.62,
+  reelBase: 0.66,
+  reelPullGain: 0.7,
   slackPullGain: 0.22,
   sweetLow: 0.3,
   sweetHigh: 0.85,
@@ -59,19 +68,23 @@ export const DEFAULT_FIGHT_PARAMS: FightParams = {
   slackGrace: 1.6,
   breakGrace: 0.3,
   staminaDrain: 1,
+  lowDrain: 0.3,
+  steerDrain: 0.4,
   swimSpeed: 110,
   holdRange: 300,
   leverage: 0.45,
+  snagRate: 0.6,
+  snagRelease: 0.5,
   landDistance: 70,
   maxLine: 900,
 };
 
 export type FightMode = 'steady' | 'burst' | 'rest' | 'dive';
-export type FightOutcome = 'landed' | 'snapped' | 'escaped';
+export type FightOutcome = 'landed' | 'snapped' | 'escaped' | 'snagged';
 
 export interface FightInput {
-  /** 是否按住收线 */
-  reeling: boolean;
+  /** 收线力度 0~1（连按空格的快慢，见 reel.ts）；0 = 放线 */
+  reel: number;
   /** 竿子往哪边带：-1 左 ~ 1 右 */
   rodSide: number;
 }
@@ -99,6 +112,8 @@ export interface FightState {
   pull: number;
   /** 鱼往哪边窜：-1 左 ~ 1 右 */
   lateral: number;
+  /** 钻进水草的程度 0~1，到 1 线就挂断 */
+  snag: number;
   mode: FightMode;
   modeTime: number;
   slackTime: number;
@@ -142,6 +157,7 @@ export class Fight {
       distance: Math.min(setup.distance, this.params.maxLine),
       pull: 0,
       lateral: rng.chance(0.5) ? 1 : -1,
+      snag: 0,
       mode: 'burst',
       modeTime: rng.range(0.4, 0.8),
       slackTime: 0,
@@ -169,22 +185,28 @@ export class Fight {
     const fatigue = s.staminaMax > 0 ? s.stamina / s.staminaMax : 0;
     let force = this.modeForce() * this.power * (0.3 + 0.7 * fatigue);
     if (s.stamina <= 0) force = 0.05;
-    // 竿子往鱼窜的反方向带，能卸掉一部分力
-    const relief = p.leverage * Math.max(0, Math.min(1, -input.rodSide * s.lateral));
+    // 竿子往鱼窜的反方向带（steer = 带得对不对，0~1），能卸掉一部分力
+    const steer = Math.max(0, Math.min(1, -input.rodSide * s.lateral));
+    const relief = p.leverage * steer;
     const diveBonus = s.mode === 'dive' ? 1 + 0.45 * (1 - relief / p.leverage) : 1;
     force *= (1 - relief) * diveBonus;
     s.pull = force;
 
     // ---- 张力 ----
-    const target = input.reeling ? p.reelBase + force * p.reelPullGain : force * p.slackPullGain;
-    const rate = target > s.tension ? p.riseRate + force * p.pullRiseRate : p.fallRate;
+    // 收线越用力，张力目标越接近"收线目标"；不收线就朝"放线目标"回落
+    const reel = Math.max(0, Math.min(1, input.reel));
+    const reelTarget = p.reelBase + force * p.reelPullGain;
+    const slackTarget = force * p.slackPullGain;
+    const target = slackTarget + (reelTarget - slackTarget) * reel;
+    const rate =
+      target > s.tension ? p.riseRate * Math.max(0.3, reel) + force * p.pullRiseRate : p.fallRate;
     s.tension += Math.sign(target - s.tension) * Math.min(Math.abs(target - s.tension), rate * dt);
     // 线放完了，张力猛增
     if (s.distance >= p.maxLine && force > 0.2) s.tension += dt * 1.5;
 
     // ---- 距离 ----
     // 线绷紧时收线才有用；鱼一直按拉力往外游
-    if (input.reeling) s.distance -= this.setup.reelSpeed * Math.min(1.2, s.tension / 0.5) * dt;
+    if (reel > 0) s.distance -= this.setup.reelSpeed * reel * Math.min(1.2, s.tension / 0.5) * dt;
     s.distance += p.swimSpeed * force * dt;
     // 鱼还有力气就不肯靠近：体力剩一成以上时，离岸至少保持 hold
     const hold = p.landDistance + p.holdRange * Math.max(0, (fatigue - 0.1) / 0.9);
@@ -192,13 +214,23 @@ export class Fight {
     s.distance = Math.max(0, Math.min(p.maxLine, s.distance));
 
     // ---- 体力 ----
+    const drain = dt * p.staminaDrain * (1 + p.steerDrain * steer * Math.abs(s.lateral));
     if (s.tension >= p.sweetLow) {
       const inSweet = s.tension <= p.sweetHigh;
-      s.stamina -= dt * p.staminaDrain * (inSweet ? 0.35 + 0.6 * s.tension : 1.1);
-    } else if (s.tension < p.slackThreshold) {
+      s.stamina -= drain * (inSweet ? 0.35 + 0.6 * s.tension : 1.1);
+    } else if (s.tension >= p.slackThreshold) {
+      s.stamina -= drain * p.lowDrain * (0.35 + 0.6 * p.sweetLow);
+    } else {
       s.stamina = Math.min(s.staminaMax, s.stamina + dt * 0.25);
     }
     s.stamina = Math.max(0, s.stamina);
+
+    // ---- 钻草 ----
+    if (s.mode === 'dive' && s.stamina > 0)
+      s.snag += dt * (p.snagRate * (1 - steer) - p.snagRelease * steer);
+    else s.snag -= dt * p.snagRelease;
+    s.snag = Math.max(0, Math.min(1, s.snag));
+    if (s.snag >= 1) return this.finish('snagged');
 
     // ---- 断线 / 脱钩 / 上岸 ----
     const breakAt = this.setup.lineStrength;

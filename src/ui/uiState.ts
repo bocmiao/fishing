@@ -62,12 +62,19 @@ export interface UiState {
   tension: number;
   /** 鱼的体力 0~1 */
   stamina: number;
+  /** 收线力度 0~1（连按空格的快慢） */
+  reel: number;
   /** 建议往哪边带竿：-1 左、1 右、0 不用 */
   sideHint: number;
+  /** 鱼钻进水草的程度 0~1 */
+  snag: number;
   catchCard: CatchCardUi | null;
 
   tuningOpen: boolean;
   tuning: Record<string, number>;
+
+  /** 玩家在用触屏：提示换成"点屏幕" */
+  touch: boolean;
 
   /** 调试信息 */
   debug: boolean;
@@ -90,10 +97,13 @@ export const initialUiState: UiState = {
   fightActive: false,
   tension: 0,
   stamina: 1,
+  reel: 0,
   sideHint: 0,
+  snag: 0,
   catchCard: null,
   tuningOpen: false,
   tuning: {},
+  touch: false,
   debug: false,
   fps: 0,
   frameMs: 0,

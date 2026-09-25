@@ -21,6 +21,7 @@ import {
 } from '../sim/fishing/bite';
 import { formatWeight, rollFish } from '../sim/fishing/catchRoll';
 import { DEFAULT_FIGHT_PARAMS, Fight, type FightParams } from '../sim/fishing/fight';
+import { ReelCrank } from '../sim/fishing/reel';
 import { pickSpecies } from '../sim/fishing/spawn';
 import { zoneAt } from '../sim/fishing/zones';
 import type { Rng } from '../sim/rng/rng';
@@ -46,10 +47,17 @@ const HINTS: Record<Phase, string> = {
   aim: '移动鼠标瞄准，按住左键蓄力，松开抛竿',
   charge: '松开抛竿',
   flying: '',
-  waiting: '等鱼咬钩……浮漂沉下去时点击提竿（没动静时点击收竿）',
-  bite: '咬钩了！快点击！',
-  fight: '按住收线，松开放线 · 鱼往一边窜时，鼠标往反方向带',
+  waiting: '等鱼咬钩……浮漂沉下去时按空格（或点击）提竿，没动静时点击收竿',
+  bite: '咬钩了！快按空格！',
+  fight: '',
   result: '',
+};
+
+/** 触屏上的说法（没有鼠标和空格） */
+const TOUCH_HINTS: Partial<Record<Phase, string>> = {
+  aim: '按住屏幕瞄准蓄力，松开抛竿',
+  waiting: '等鱼咬钩……浮漂沉下去时点屏幕提竿（没动静时点屏幕收竿）',
+  bite: '咬钩了！快点屏幕！',
 };
 
 const RARITY_TEXT: Record<string, string> = {
@@ -114,7 +122,10 @@ export class FishingScene extends Scene {
   private phase: Phase = 'aim';
   private time = 0;
   private mouse = { x: 0, y: 0 };
-  private pointerDown = false;
+  /** 最近一次操作是不是触屏：决定提示怎么说、点屏幕算不算摇轮 */
+  private touch = false;
+  /** 遛鱼时连按空格（触屏：连点屏幕）摇线轮 */
+  private readonly crank = new ReelCrank();
   private aimAngle = 0;
   private charge = 0;
   private chargeTime = 0;
@@ -206,9 +217,13 @@ export class FishingScene extends Scene {
     this.root.hitArea = new Rectangle(0, 0, w, h);
     this.root.on('pointermove', (e: FederatedPointerEvent) => this.onPointerMove(e));
     this.root.on('pointerdown', (e: FederatedPointerEvent) => {
+      this.setTouch(e.pointerType === 'touch');
       this.onPointerMove(e);
       if (e.button === 2) this.retrieve();
-      else this.press(true);
+      // 遛鱼时鼠标只管带竿，收线靠空格；触屏没有空格，点一下摇一圈
+      else if (this.phase === 'fight') {
+        if (this.touch) this.crank.press();
+      } else this.press(true);
     });
     this.root.on('pointerup', () => this.press(false));
     this.root.on('pointerupoutside', () => this.press(false));
@@ -326,11 +341,22 @@ export class FishingScene extends Scene {
     this.mouse.y = p.y;
   }
 
+  private setTouch(touch: boolean): void {
+    if (touch === this.touch) return;
+    this.touch = touch;
+    this.ctx.ui.set({ touch });
+    this.pushFishingUi();
+  }
+
   private handleKey(e: KeyboardEvent, down: boolean): void {
+    // 按住空格的自动连发不算：要自己一下一下地按
+    if (e.code === 'Space') e.preventDefault();
     if (e.repeat) return;
     if (e.code === 'Space') {
-      this.press(down);
-      e.preventDefault();
+      this.setTouch(false);
+      if (this.phase === 'fight') {
+        if (down) this.crank.press();
+      } else this.press(down);
     } else if (down && e.code === 'Escape') {
       this.retrieve();
     } else if (down && e.code === 'F2') {
@@ -346,7 +372,6 @@ export class FishingScene extends Scene {
   }
 
   private press(down: boolean): void {
-    this.pointerDown = down;
     if (!down) {
       if (this.phase === 'charge') this.cast();
       return;
@@ -506,7 +531,7 @@ export class FishingScene extends Scene {
     this.plan = null;
     this.hooked = null;
     this.fight = null;
-    this.ctx.ui.set({ fightActive: false, sideHint: 0 });
+    this.ctx.ui.set({ fightActive: false, sideHint: 0, snag: 0, reel: 0 });
     this.pushFishingUi();
   }
 
@@ -643,6 +668,7 @@ export class FishingScene extends Scene {
       this.rng.fork('fight'),
       this.tuning,
     );
+    this.crank.reset();
     this.bobber.state = 'hidden';
     this.ripples.add(f.x, f.y, 1, 1.6, 4);
     if (quality >= 1) this.toast('好竿！', 'good');
@@ -658,7 +684,8 @@ export class FishingScene extends Scene {
     const f = this.hooked!;
     const base = this.rodBase;
     const rodSide = Math.max(-1, Math.min(1, (this.mouse.x - this.catX) / 260));
-    const events = fight.step(dt, { reeling: this.pointerDown, rodSide });
+    this.crank.update(dt);
+    const events = fight.step(dt, { reel: this.crank.intensity, rodSide });
     const s = fight.state;
 
     // 鱼往一边窜：绕着岸边的角度慢慢移动
@@ -692,18 +719,21 @@ export class FishingScene extends Scene {
       else if (e.type === 'landed') this.onLanded();
       else if (e.type === 'snapped') this.onLost('鱼线断了！', f);
       else if (e.type === 'escaped') this.onLost('线太松，鱼脱钩跑了', f);
+      else if (e.type === 'snagged') this.onLost('鱼钻进水草，线挂断了', f);
     }
     if (this.phase !== 'fight') return;
 
     const lateralHint =
-      Math.abs(s.lateral) > 0.45 &&
-      s.pull > 0.3 &&
-      (s.mode === 'dive' || f.species.fight.style === 'dive')
+      s.mode === 'dive' ||
+      s.snag > 0.05 ||
+      (Math.abs(s.lateral) > 0.45 && s.pull > 0.3 && f.species.fight.style === 'dive')
         ? -Math.sign(s.lateral)
         : 0;
     this.ctx.ui.set({
       tension: s.tension,
       stamina: s.staminaMax > 0 ? s.stamina / s.staminaMax : 0,
+      reel: this.crank.intensity,
+      snag: s.snag,
       sideHint: lateralHint,
     });
   }
@@ -968,7 +998,11 @@ export class FishingScene extends Scene {
   private pushFishingUi(): void {
     const state = this.ctx.state;
     const hint =
-      this.baitGone && this.phase === 'waiting' ? '饵没了，点击收竿重新挂饵' : HINTS[this.phase];
+      this.baitGone && this.phase === 'waiting'
+        ? this.touch
+          ? '饵没了，点屏幕收竿重新挂饵'
+          : '饵没了，点击收竿重新挂饵'
+        : ((this.touch ? TOUCH_HINTS[this.phase] : undefined) ?? HINTS[this.phase]);
     this.ctx.ui.set({
       sceneTitle: this.spot.name,
       sceneSubtitle: this.position.name,

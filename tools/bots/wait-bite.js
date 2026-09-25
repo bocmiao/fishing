@@ -26,7 +26,7 @@
       sc.press(false);
       step(1.6);
       recasts++;
-    } else if (phase !== 'waiting') {
+    } else if (phase !== 'waiting' && phase !== 'flying') {
       return `phase ${phase}`;
     }
   }

@@ -381,17 +381,24 @@ body {
   box-shadow: 0 0 0 2px rgba(245, 235, 219, 0.9);
 }
 
-.stamina {
+.gauges {
+  display: flex;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.gauge {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 8px;
   font-size: 11px;
   letter-spacing: 0.15em;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
 
-.stamina-bar {
+.gauge-bar {
   flex: 1;
   height: 5px;
   border-radius: 3px;
@@ -399,10 +406,26 @@ body {
   overflow: hidden;
 }
 
-.stamina-bar div {
+.gauge-bar div {
   height: 100%;
-  background: var(--accent);
   transition: width 0.1s linear;
+}
+
+.gauge.stamina .gauge-bar div {
+  background: var(--accent);
+}
+
+.gauge.reel .gauge-bar div {
+  background: var(--gold);
+  transition: width 0.05s linear;
+}
+
+.meter-help {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  opacity: 0.8;
 }
 
 .meter-side {
