@@ -46,6 +46,11 @@ export function sizeClassOf(lengthCm: number): SizeClass {
 
 let nextUid = 1;
 
+/** 读档后调用：之后新钓的鱼编号从 min 往上走，不会和存档里的鱼撞号 */
+export function reserveUids(min: number): void {
+  nextUid = Math.max(nextUid, Math.floor(min));
+}
+
 /** 随机生成一条某个品种的鱼 */
 export function rollFish(species: FishSpecies, rng: Rng): FishInstance {
   const { min, mode, max } = species.weightKg;

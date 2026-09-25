@@ -1,0 +1,59 @@
+{
+  "crops": [
+    {
+      "id": "corn",
+      "name": "玉米",
+      "seasons": ["spring", "summer"],
+      "days": 6,
+      "yield": [8, 12],
+      "produce": "corn",
+      "seedPrice": 8,
+      "startSeeds": 3,
+      "note": "鲜玉米粒就是钓大鱼的饵，还能做玉米烙。"
+    },
+    {
+      "id": "wheat",
+      "name": "小麦",
+      "seasons": ["spring", "autumn"],
+      "days": 7,
+      "yield": [2, 3],
+      "produce": "wheat",
+      "seedPrice": 6,
+      "startSeeds": 2,
+      "note": "收了磨面粉，面粉和成面饵。"
+    },
+    {
+      "id": "soybean",
+      "name": "黄豆",
+      "seasons": ["spring", "summer"],
+      "days": 5,
+      "yield": [2, 4],
+      "produce": "soybean",
+      "seedPrice": 6,
+      "startSeeds": 2,
+      "note": "点成豆腐，小馆好几道菜都要。"
+    },
+    {
+      "id": "scallion",
+      "name": "葱",
+      "seasons": ["spring", "summer", "autumn", "winter"],
+      "days": 3,
+      "yield": [2, 3],
+      "produce": "scallion",
+      "seedPrice": 4,
+      "startSeeds": 3,
+      "note": "长得快，一年四季都能种。"
+    },
+    {
+      "id": "greens",
+      "name": "青菜",
+      "seasons": ["spring", "autumn", "winter"],
+      "days": 3,
+      "yield": [2, 3],
+      "produce": "greens",
+      "seedPrice": 4,
+      "startSeeds": 3,
+      "note": "小馆的配菜。"
+    }
+  ]
+}

@@ -378,6 +378,7 @@ export class FishingScene extends Scene {
     }
     switch (this.phase) {
       case 'aim':
+        if (!this.ensureBait()) break;
         this.phase = 'charge';
         this.chargeTime = 0;
         break;
@@ -436,9 +437,29 @@ export class FishingScene extends Scene {
     }
   }
 
+  /** 抛竿前看看饵还有没有；当前的用完了就换一种还有的 */
+  private ensureBait(): boolean {
+    const state = this.ctx.state;
+    if (state.baitLeft > 0) return true;
+    const used = state.itemName(state.baitId);
+    const other = state.data.items.baits.find((b) => state.inventory.count(b.id) > 0);
+    if (other) {
+      state.baitId = other.id;
+      this.toast(`${used}用完了，换上了${other.name}`, 'info');
+      this.pushFishingUi();
+      return true;
+    }
+    this.toast('饵都用完了……去菜地挖点蚯蚓，或者到小馆隔壁的杂货铺买', 'bad');
+    return false;
+  }
+
   private selectBait(baitId: string): void {
     const state = this.ctx.state;
     if (state.baitId === baitId || !state.data.items.baits.some((b) => b.id === baitId)) return;
+    if (state.inventory.count(baitId) === 0) {
+      this.toast(`没有${state.itemName(baitId)}了`, 'info');
+      return;
+    }
     state.baitId = baitId;
     const name = state.data.items.baits.find((b) => b.id === baitId)!.name;
     // 换饵要先收竿
@@ -595,6 +616,7 @@ export class FishingScene extends Scene {
       this.ripples.add(this.floatX, this.floatY, 0.3, 0.8, 1);
       if (nibble.steals) {
         this.baitGone = true;
+        this.ctx.state.useBait();
         this.toast('饵被偷吃了……点击收竿重新挂饵', 'bad');
         this.pool.setState(f, 'roam');
         f.wary = 5;
@@ -636,6 +658,7 @@ export class FishingScene extends Scene {
     if (!f || this.biteTimer > (this.plan?.window ?? 0)) {
       if (f) this.pool.scare(f, this.floatX, this.floatY + 40);
       this.baitGone = this.rng.chance(0.5);
+      if (this.baitGone) this.ctx.state.useBait();
       this.toast(this.baitGone ? '提竿慢了，鱼叼着饵跑了' : '提竿慢了，鱼跑了', 'bad');
       this.suitor = null;
       this.phase = 'waiting';
@@ -652,6 +675,8 @@ export class FishingScene extends Scene {
     this.cat.strike();
     this.pool.setState(f, 'hooked');
     this.hooked = f;
+    // 鱼咬住了饵：不管最后上没上来，这份饵都用掉了
+    this.ctx.state.useBait();
     const base = this.rodBase;
     const dist = Math.hypot(f.x - base.x, f.y - base.y);
     this.fightAngle = Math.atan2(f.x - base.x, base.y - f.y);
@@ -810,12 +835,9 @@ export class FishingScene extends Scene {
     this.time += dt;
     const state = this.ctx.state;
     const clock = state.clock;
-    const { reachedDayEnd } = clock.advance(dt);
-    if (reachedDayEnd && this.phase !== 'fight' && this.phase !== 'result') {
-      // 2:00 了：回家睡觉（M2 会接老宅；现在直接进入第二天）
-      state.sleep();
-      this.toast('夜深了，阿喵回家睡了一觉', 'info');
-    }
+    clock.advance(dt);
+    // 2:00 了：遛完这条鱼就回家睡觉（Game 会切回家里，弹出一天的小结）
+    if (clock.isDayOver && this.phase !== 'fight' && this.phase !== 'result') state.sleep();
 
     // 淡入淡出（切换钓位）
     this.fadeAlpha += (this.fadeTarget - this.fadeAlpha) * Math.min(1, dt * 7);
@@ -1013,7 +1035,12 @@ export class FishingScene extends Scene {
         positionId: this.position.id,
         positions: this.spot.positions.map((p) => ({ id: p.id, name: p.name, note: p.note })),
         baitId: state.baitId,
-        baits: state.data.items.baits.map((b) => ({ id: b.id, name: b.name, note: b.note })),
+        baits: state.data.items.baits.map((b) => ({
+          id: b.id,
+          name: b.name,
+          note: b.note,
+          count: state.inventory.count(b.id),
+        })),
         keepNet: state.keepNet.length,
         keepNetCapacity: state.keepNetCapacity,
         hint,

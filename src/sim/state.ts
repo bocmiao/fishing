@@ -1,6 +1,15 @@
-import type { GameData } from './data/gameData';
+import { seedId, type GameData } from './data/gameData';
 import type { Weather } from './data/schema';
 import type { FishInstance } from './fishing/catchRoll';
+import {
+  growPlots,
+  newPlot,
+  workPlot,
+  type FarmResult,
+  type FarmTool,
+  type Plot,
+} from './farm/farm';
+import { Inventory } from './inventory';
 import { hashString, Rng } from './rng/rng';
 import { GameClock, type Season } from './time/clock';
 
@@ -66,6 +75,31 @@ export interface JournalEntry {
   firstDay: number;
 }
 
+/** 今天做了些什么（睡觉时写进一天的小结） */
+export interface DayStats {
+  caught: number;
+  kept: number;
+  worms: number;
+  harvested: number;
+  earned: number;
+  spent: number;
+}
+
+/** 一天结束时给玩家看的小结 */
+export interface DaySummary {
+  /** 结束的是第几天（从 0 开始） */
+  day: number;
+  stats: DayStats;
+  /** 夜里成熟的作物块数 */
+  ripened: number;
+  /** 明天的天气 */
+  weather: Weather;
+}
+
+function emptyStats(): DayStats {
+  return { caught: 0, kept: 0, worms: 0, harvested: 0, earned: 0, spent: 0 };
+}
+
 export interface CatchRecordResult {
   /** 第一次钓到这种鱼（外公笔记新的一页） */
   newSpecies: boolean;
@@ -74,13 +108,21 @@ export interface CatchRecordResult {
 }
 
 /**
- * 跨画面共享的游戏状态：时间、天气、鱼护、外公笔记的记录、当前饵料和渔具。
- * 方案 C 的行走地图也读写同一份状态。
+ * 跨画面共享的游戏状态：时间、天气、钱、库存、鱼护、鱼塘、菜地、外公笔记、当前饵料和渔具。
+ * 方案 C 的行走地图也读写同一份状态。存档见 save.ts。
  */
 export class GameState {
   readonly clock: GameClock;
   weather: Weather;
-  money = 0;
+  money: number;
+  readonly inventory: Inventory;
+  /** 菜地的每一块地 */
+  readonly plots: Plot[] = [];
+  /** 现在在哪（地点 id，也是画面名） */
+  place: string;
+  today: DayStats = emptyStats();
+  /** 最近一次睡觉的小结（界面显示完就清掉） */
+  lastSummary: DaySummary | null = null;
   readonly keepNet: CaughtFish[] = [];
   keepNetCapacity: number;
   /** 自家鱼塘：开局只有外公留下的两条锦鲤，钓到的鱼可以放进来养 */
@@ -90,11 +132,12 @@ export class GameState {
   baitId: string;
   rodId: string;
   lineId: string;
-  private readonly rng: Rng;
+  private rng: Rng;
 
   constructor(
     readonly data: GameData,
-    seed: number,
+    /** 这一局的种子（存档里也记着） */
+    readonly seed: number,
   ) {
     this.rng = new Rng(seed).fork('state');
     this.clock = new GameClock();
@@ -118,6 +161,74 @@ export class GameState {
     this.baitId = data.items.baits[0]!.id;
     this.rodId = data.items.rods[0]!.id;
     this.lineId = data.items.lines[0]!.id;
+    this.money = data.items.startMoney;
+    // 外公留下的：一罐蚯蚓、半袋面粉做的面饵、一把玉米，还有一小包种子
+    this.inventory = new Inventory();
+    for (const b of data.items.baits) this.inventory.add(b.id, b.startCount);
+    for (const c of data.crops) this.inventory.add(seedId(c.id), c.startSeeds);
+    for (let i = 0; i < data.farm.plots; i++) this.plots.push(newPlot());
+    this.place = data.homePlace;
+  }
+
+  /** 天气相关的随机数（存档后重新读档时按天数重新派生，不需要存状态） */
+  reseed(seed: number): void {
+    this.rng = new Rng(seed).fork(`state:${this.clock.day}`);
+  }
+
+  itemName(id: string): string {
+    return this.data.itemNames.get(id) ?? id;
+  }
+
+  /** 当前饵料还剩几份 */
+  get baitLeft(): number {
+    return this.inventory.count(this.baitId);
+  }
+
+  /** 饵被鱼叼走、被偷吃，或者鱼上钩了：用掉一份 */
+  useBait(): void {
+    this.inventory.take(this.baitId);
+  }
+
+  earn(amount: number): void {
+    this.money += amount;
+    this.today.earned += amount;
+  }
+
+  /** 花钱；不够就不花，返回 false */
+  spend(amount: number): boolean {
+    if (this.money < amount) return false;
+    this.money -= amount;
+    this.today.spent += amount;
+    return true;
+  }
+
+  /** 在菜地的第 i 块地上干一次活，花掉相应的游戏时间 */
+  workPlot(i: number, tool: FarmTool, rng: Rng): FarmResult {
+    const plot = this.plots[i];
+    if (!plot) throw new Error(`没有第 ${i} 块地`);
+    const result = workPlot(plot, tool, {
+      crops: this.data.cropById,
+      config: this.data.farm,
+      inventory: this.inventory,
+      rng,
+      season: this.clock.season,
+      raining: this.weather === 'rain',
+    });
+    if (result.ok) {
+      this.clock.addMinutes(result.minutes);
+      this.today.worms += result.worms;
+      if (result.harvest) this.today.harvested += result.harvest.count;
+    }
+    return result;
+  }
+
+  /** 在家里加工（磨面、和面饵、点豆腐）；材料不够返回 false */
+  craft(craftId: string): boolean {
+    const craft = this.data.crafts.find((c) => c.id === craftId);
+    if (!craft || !this.inventory.takeAll(craft.inputs)) return false;
+    for (const [id, n] of Object.entries(craft.outputs)) this.inventory.add(id, n);
+    this.clock.addMinutes(craft.minutes);
+    return true;
   }
 
   get rod() {
@@ -134,6 +245,7 @@ export class GameState {
 
   /** 记下一次上鱼（不管放生还是留下，笔记都会记） */
   recordCatch(fish: FishInstance): CatchRecordResult {
+    this.today.caught++;
     const prev = this.journal.get(fish.speciesId);
     if (!prev) {
       this.journal.set(fish.speciesId, {
@@ -152,6 +264,7 @@ export class GameState {
   /** 放进鱼护；满了返回 false */
   keep(fish: FishInstance, spotId: string, positionId: string): boolean {
     if (this.keepNetFull) return false;
+    this.today.kept++;
     this.keepNet.push({
       ...fish,
       day: this.clock.day,
@@ -198,10 +311,22 @@ export class GameState {
     return true;
   }
 
-  /** 睡觉：进入新的一天，重新掷天气 */
-  sleep(): void {
+  /** 睡觉：夜里作物生长，进入新的一天，重新掷天气，回到家里。返回这一天的小结 */
+  sleep(): DaySummary {
+    const day = this.clock.day;
+    const rained = this.weather === 'rain';
+    const ripened = growPlots(
+      this.plots,
+      { crops: this.data.cropById, config: this.data.farm },
+      rained,
+    );
     this.clock.sleep();
     this.weather = rollWeather(this.clock.season, this.rng);
+    this.place = this.data.homePlace;
+    const summary: DaySummary = { day, stats: this.today, ripened, weather: this.weather };
+    this.today = emptyStats();
+    this.lastSummary = summary;
+    return summary;
   }
 
   cycleWeather(): void {

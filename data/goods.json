@@ -1,0 +1,37 @@
+{
+  "goods": [
+    { "id": "wheat", "name": "小麦", "note": "磨成面粉，面饵和面条都靠它。", "price": 3 },
+    { "id": "flour", "name": "面粉", "note": "和成面饵，也能擀面条。", "price": 4 },
+    { "id": "soybean", "name": "黄豆", "note": "点成豆腐，豆饼还能打窝。", "price": 3 },
+    { "id": "tofu", "name": "豆腐", "note": "鲫鱼豆腐汤、泥鳅钻豆腐都要用。", "price": 5 },
+    { "id": "scallion", "name": "葱", "note": "红烧鱼少不了一把葱。", "price": 2 },
+    { "id": "greens", "name": "青菜", "note": "清炒一盘，或者煮进鱼汤面里。", "price": 2 },
+    { "id": "compost", "name": "堆肥", "note": "小馆的鱼杂和剩菜沤出来的，施在地里长得快。", "price": 0 }
+  ],
+  "crafts": [
+    {
+      "id": "mill_flour",
+      "name": "磨面粉",
+      "note": "外公的石磨还能转。",
+      "inputs": { "wheat": 1 },
+      "outputs": { "flour": 2 },
+      "minutes": 20
+    },
+    {
+      "id": "mix_dough",
+      "name": "和面饵",
+      "note": "面粉加一点水，揉成小团。",
+      "inputs": { "flour": 1 },
+      "outputs": { "dough": 6 },
+      "minutes": 5
+    },
+    {
+      "id": "make_tofu",
+      "name": "点豆腐",
+      "note": "黄豆泡软磨浆，卤水一点就成。",
+      "inputs": { "soybean": 2 },
+      "outputs": { "tofu": 2 },
+      "minutes": 30
+    }
+  ]
+}

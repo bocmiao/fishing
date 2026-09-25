@@ -98,6 +98,15 @@ export class GameClock {
     return { ...this.state };
   }
 
+  /** 读档时用 */
+  set(state: ClockState): void {
+    this.state = {
+      day: Math.max(0, Math.floor(state.day)),
+      minute: Math.max(DAY_START_MINUTE, Math.min(DAY_END_MINUTE, state.minute)),
+    };
+    this.carry = 0;
+  }
+
   /** 按现实时间推进。走到 26:00 会停住，等待 sleep() */
   advance(realSeconds: number): ClockAdvanceResult {
     if (this.paused || this.isDayOver || realSeconds <= 0) return { reachedDayEnd: false };

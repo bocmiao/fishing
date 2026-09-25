@@ -1,0 +1,17 @@
+{
+  "places": [
+    { "id": "pond", "name": "方塘", "area": "home", "note": "外公的老鱼塘，就在屋后。", "x": 0.3, "y": 0.62 },
+    { "id": "farm", "name": "菜地", "area": "home", "note": "老宅旁边的一块荒地。", "x": 0.16, "y": 0.44 },
+    { "id": "fishing", "name": "屋后小溪", "area": "creek", "note": "鲫鱼、马口鱼、夜里的黄鳝。", "x": 0.52, "y": 0.26 },
+    { "id": "restaurant", "name": "喵记小馆", "area": "village", "note": "村口外公的老饭馆，隔壁是杂货铺和鱼摊。", "x": 0.78, "y": 0.6 }
+  ],
+  "home": "pond",
+  "travel": [
+    { "from": "home", "to": "home", "minutes": 2 },
+    { "from": "home", "to": "creek", "minutes": 10 },
+    { "from": "home", "to": "village", "minutes": 20 },
+    { "from": "creek", "to": "village", "minutes": 25 },
+    { "from": "creek", "to": "creek", "minutes": 0 },
+    { "from": "village", "to": "village", "minutes": 0 }
+  ]
+}

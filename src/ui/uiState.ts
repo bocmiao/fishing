@@ -11,7 +11,7 @@ export interface FishingUi {
   positionId: string;
   positions: Option[];
   baitId: string;
-  baits: Option[];
+  baits: (Option & { count: number })[];
   keepNet: number;
   keepNetCapacity: number;
   /** 当前阶段的操作提示 */
@@ -51,6 +51,27 @@ export interface PondUi {
   keepNet: KeepFishUi[];
 }
 
+/** 地图上的一个地方 */
+export interface PlaceUi {
+  id: string;
+  name: string;
+  note: string;
+  /** 在地图上的位置（0~1） */
+  x: number;
+  y: number;
+  /** 从这里过去要走几分钟（游戏时间） */
+  minutes: number;
+  here: boolean;
+}
+
+/** 睡觉时弹出的一天小结 */
+export interface DaySummaryUi {
+  id: number;
+  title: string;
+  lines: string[];
+  tomorrow: string;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -70,6 +91,9 @@ export interface UiState {
   /** 例如 "第 1 天 · 春 · 6:40 · 晴" */
   clockText: string;
   toast: Toast | null;
+  money: number;
+  places: PlaceUi[];
+  daySummary: DaySummaryUi | null;
   /** 胡须感应：附近有少见的鱼 */
   sense: boolean;
 
@@ -109,6 +133,9 @@ export const initialUiState: UiState = {
   hint: '',
   clockText: '',
   toast: null,
+  money: 0,
+  places: [],
+  daySummary: null,
   sense: false,
   pond: null,
   fishing: null,

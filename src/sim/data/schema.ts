@@ -109,7 +109,19 @@ export const SpotSchema = z.object({
 export type Spot = z.infer<typeof SpotSchema>;
 
 export const ItemsSchema = z.object({
-  baits: z.array(z.object({ id: z.string(), name: z.string(), note: z.string() })).min(1),
+  baits: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        note: z.string(),
+        /** 开局外公留下的数量 */
+        startCount: z.number().int().min(0),
+        /** 杂货铺的单价（元） */
+        price: z.number().min(0),
+      }),
+    )
+    .min(1),
   rods: z
     .array(
       z.object({
@@ -129,6 +141,8 @@ export const ItemsSchema = z.object({
     .array(z.object({ id: z.string(), name: z.string(), strength: z.number().positive() }))
     .min(1),
   keepNetCapacity: z.number().int().positive(),
+  /** 开局外公旧钱包里的钱 */
+  startMoney: z.number().min(0),
 });
 export type Items = z.infer<typeof ItemsSchema>;
 export type Bait = Items['baits'][number];
@@ -152,3 +166,106 @@ export const PondSchema = z.object({
   ),
 });
 export type PondConfig = z.infer<typeof PondSchema>;
+
+const amounts = z.record(z.string(), z.number().int().positive());
+
+/** 除了饵料以外的东西：作物、加工品、材料。库存里和饵料用同一套 id */
+export const GoodsSchema = z.object({
+  goods: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      note: z.string(),
+      /** 卖给杂货铺 / 从杂货铺买的参考价（元） */
+      price: z.number().min(0),
+    }),
+  ),
+  /** 在家里做的加工：石磨磨面、和面饵、点豆腐 */
+  crafts: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      note: z.string(),
+      inputs: amounts,
+      outputs: amounts,
+      /** 花掉的游戏分钟 */
+      minutes: z.number().min(0),
+    }),
+  ),
+});
+export type Goods = z.infer<typeof GoodsSchema>;
+export type Good = Goods['goods'][number];
+export type Craft = Goods['crafts'][number];
+
+export const CropSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  seasons: z.array(z.enum(SEASON_KEYS)).min(1),
+  /** 浇够几天水成熟 */
+  days: z.number().int().positive(),
+  /** 收获数量 [最少, 最多] */
+  yield: z.tuple([z.number().int().positive(), z.number().int().positive()]),
+  /** 收获得到的东西（饵料或货物的 id） */
+  produce: z.string(),
+  seedPrice: z.number().min(0),
+  /** 开局外公留下的种子 */
+  startSeeds: z.number().int().min(0),
+  note: z.string(),
+});
+export type Crop = z.infer<typeof CropSchema>;
+
+export const FarmSchema = z.object({
+  name: z.string(),
+  plots: z.number().int().positive(),
+  /** 每种操作花掉的游戏分钟 */
+  minutes: z.object({
+    clear: z.number().min(0),
+    till: z.number().min(0),
+    sow: z.number().min(0),
+    water: z.number().min(0),
+    harvest: z.number().min(0),
+    fertilize: z.number().min(0),
+  }),
+  /** 翻地挖蚯蚓 */
+  worms: z.object({
+    clearChance: z.number().min(0).max(1),
+    tillChance: z.number().min(0).max(1),
+    min: z.number().int().min(0),
+    max: z.number().int().min(0),
+    /** 当天下雨，多挖到几条 */
+    rainBonus: z.number().int().min(0),
+    /** 施过堆肥的地，多挖到几条 */
+    compostBonus: z.number().int().min(0),
+  }),
+  /** 施了堆肥，收获多几成 */
+  compostYieldBonus: z.number().min(0),
+  /** 施了堆肥，每天多长几天（按天数算） */
+  compostGrowBonus: z.number().min(0),
+  /** 收获时留下一颗种子的概率 */
+  seedReturnChance: z.number().min(0).max(1),
+});
+export type FarmConfig = z.infer<typeof FarmSchema>;
+
+export const AREAS = ['home', 'creek', 'village'] as const;
+export type Area = (typeof AREAS)[number];
+
+export const PlacesSchema = z.object({
+  places: z.array(
+    z.object({
+      /** 同时也是画面名（?scene= 用的名字） */
+      id: z.string(),
+      name: z.string(),
+      area: z.enum(AREAS),
+      note: z.string(),
+      /** 在手绘地图上的位置（0~1） */
+      x: z.number().min(0).max(1),
+      y: z.number().min(0).max(1),
+    }),
+  ),
+  /** 睡醒时在哪 */
+  home: z.string(),
+  /** 两个区域之间赶路花的游戏分钟（不分方向） */
+  travel: z.array(z.object({ from: z.enum(AREAS), to: z.enum(AREAS), minutes: z.number().min(0) })),
+});
+export type Places = z.infer<typeof PlacesSchema>;
+export type Place = Places['places'][number];

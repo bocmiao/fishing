@@ -3,6 +3,14 @@
  */
 export type GameCommand =
   | { type: 'goto'; scene: string }
+  /** 从地图去某个地方（花掉路上的时间） */
+  | { type: 'travel'; placeId: string }
+  /** 回家睡觉，结束今天 */
+  | { type: 'sleep' }
+  /** 清掉存档重新开始 */
+  | { type: 'newGame' }
+  /** 看完一天的小结，起床 */
+  | { type: 'dismissSummary' }
   | { type: 'selectBait'; baitId: string }
   | { type: 'selectPosition'; positionId: string }
   | { type: 'catchDecision'; keep: boolean }

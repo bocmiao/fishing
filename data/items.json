@@ -1,8 +1,26 @@
 {
   "baits": [
-    { "id": "worm", "name": "蚯蚓", "note": "什么鱼都爱吃，荤饵。" },
-    { "id": "dough", "name": "面饵", "note": "面粉和的饵，鲫鱼和小杂鱼最爱。" },
-    { "id": "corn", "name": "玉米", "note": "个头大，小鱼咬不动，专等大鱼。" }
+    {
+      "id": "worm",
+      "name": "蚯蚓",
+      "note": "什么鱼都爱吃，荤饵。",
+      "startCount": 20,
+      "price": 1
+    },
+    {
+      "id": "dough",
+      "name": "面饵",
+      "note": "面粉和的饵，鲫鱼和小杂鱼最爱。",
+      "startCount": 20,
+      "price": 1
+    },
+    {
+      "id": "corn",
+      "name": "玉米",
+      "note": "个头大，小鱼咬不动，专等大鱼。",
+      "startCount": 10,
+      "price": 2
+    }
   ],
   "rods": [
     {
@@ -14,6 +32,13 @@
       "reelSpeed": 150
     }
   ],
-  "lines": [{ "id": "basic", "name": "普通鱼线", "strength": 1.0 }],
-  "keepNetCapacity": 8
+  "lines": [
+    {
+      "id": "basic",
+      "name": "普通鱼线",
+      "strength": 1.0
+    }
+  ],
+  "keepNetCapacity": 8,
+  "startMoney": 100
 }

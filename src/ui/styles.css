@@ -114,6 +114,199 @@ body {
   background: #fff8ec;
 }
 
+.plaque-money {
+  margin-left: 18px;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}
+
+/* ---------------------------------------------------------------- 地图 */
+
+.map-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 26, 22, 0.4);
+  pointer-events: auto;
+}
+
+.map {
+  width: 960px;
+  padding: 16px 20px 18px;
+}
+
+.map-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.map-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+}
+
+.map-clock {
+  flex: 1;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.map-close {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.map-paper {
+  position: relative;
+  height: 560px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(201, 163, 107, 0.12), transparent 60%), #f8f0e1;
+  overflow: hidden;
+}
+
+.map-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-river {
+  fill: none;
+  stroke: #8aab92;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+.map-road {
+  fill: none;
+  stroke: #c9a36b;
+  stroke-width: 0.5;
+  stroke-dasharray: 1.2 1;
+}
+
+.map-house path {
+  fill: #ede4d0;
+  stroke: #5b625d;
+  stroke-width: 0.35;
+}
+
+.map-field path {
+  fill: #d9ccb2;
+  stroke: #8d7a5a;
+  stroke-width: 0.3;
+}
+
+.map-pond {
+  fill: #6a9a84;
+  opacity: 0.75;
+}
+
+.map-pin {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -14px);
+  padding: 4px 10px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.map-pin:hover:not(:disabled) {
+  background: rgba(255, 250, 240, 0.9);
+}
+
+.map-pin:disabled {
+  cursor: default;
+}
+
+.map-pin-dot {
+  width: 14px;
+  height: 14px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  box-shadow: 0 0 0 3px rgba(245, 235, 219, 0.9);
+}
+
+.map-pin.is-here .map-pin-dot {
+  background: var(--accent);
+  animation: sense-pulse 1.2s ease-in-out infinite;
+}
+
+.map-pin-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.map-pin-time {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.map-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.map-footer button {
+  padding: 8px 16px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.map-footer .map-reset {
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------- 一天的小结 */
+
+.summary {
+  width: 440px;
+  padding: 26px 32px 24px;
+  text-align: center;
+}
+
+.summary h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+  letter-spacing: 0.3em;
+}
+
+.summary ul {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 2;
+}
+
+.summary-tomorrow {
+  margin-bottom: 18px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+
 /* ---------------------------------------------------------------- 提示 */
 
 .hint {
@@ -246,6 +439,22 @@ body {
 .bait.is-active {
   border-color: var(--accent);
   background: #fffaf0;
+}
+
+.bait-count {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.bait.is-active .bait-count {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.bait.is-empty {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .bait-key {
@@ -446,6 +655,7 @@ body {
 .catch-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -18,7 +18,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
   return (
     <div className={`ui-root${watch ? ' is-watching' : ''}`}>
       <Plaque store={store} />
-      <NavButton scene={scene} send={send} />
+      <MapButton store={store} send={send} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
       <ToastView store={store} />
@@ -27,6 +27,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       <button className="watch-exit" onClick={() => send({ type: 'toggleWatch' })}>
         退出观鱼（H）
       </button>
+      <DaySummaryCard store={store} send={send} />
       <div className="rotate-hint">把手机横过来玩更舒服</div>
     </div>
   );
@@ -36,34 +37,168 @@ function Plaque({ store }: { store: Store<UiState> }) {
   const title = useUi(store, (s) => s.sceneTitle);
   const subtitle = useUi(store, (s) => s.sceneSubtitle);
   const clock = useUi(store, (s) => s.clockText);
+  const money = useUi(store, (s) => s.money);
   if (!title) return null;
   return (
     <div className="plaque">
       <div className="plaque-title">
         {title}
         {subtitle && <span className="plaque-pos">· {subtitle}</span>}
+        <span className="plaque-money">¥{money}</span>
       </div>
       {clock && <div className="plaque-sub">{clock}</div>}
     </div>
   );
 }
 
-function NavButton({ scene, send }: { scene: string; send: Send }) {
-  if (scene === 'pond') {
-    return (
-      <button className="nav-button card" onClick={() => send({ type: 'goto', scene: 'fishing' })}>
-        去屋后小溪钓鱼 →
+function MapButton({ store, send }: { store: Store<UiState>; send: Send }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyM') setOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <>
+      <button className="nav-button card" onClick={() => setOpen(true)}>
+        地图<kbd>M</kbd>
       </button>
-    );
-  }
-  if (scene === 'fishing') {
-    return (
-      <button className="nav-button card" onClick={() => send({ type: 'goto', scene: 'pond' })}>
-        ← 回方塘
-      </button>
-    );
-  }
-  return null;
+      {open && <MapPanel store={store} send={send} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/** 夹在外公笔记里的手绘地图：点一个地方就走过去 */
+function MapPanel({
+  store,
+  send,
+  onClose,
+}: {
+  store: Store<UiState>;
+  send: Send;
+  onClose: () => void;
+}) {
+  const places = useUi(store, (s) => s.places);
+  const clock = useUi(store, (s) => s.clockText);
+  // 睡觉和重新开始都要再点一次确认（网页版里浏览器的确认框可能被拦掉）
+  const [confirm, setConfirm] = useState<'sleep' | 'reset' | null>(null);
+  return (
+    <div className="map-backdrop" onClick={onClose}>
+      <div className="map card" onClick={(e) => e.stopPropagation()}>
+        <div className="map-head">
+          <span className="map-title">柳溪村</span>
+          <span className="map-clock">{clock}</span>
+          <button className="map-close" onClick={onClose} aria-label="关上地图">
+            ×
+          </button>
+        </div>
+        <div className="map-paper">
+          <MapArt />
+          {places.map((p) => (
+            <button
+              key={p.id}
+              className={`map-pin${p.here ? ' is-here' : ''}`}
+              style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+              title={p.note}
+              disabled={p.here}
+              onClick={() => {
+                send({ type: 'travel', placeId: p.id });
+                onClose();
+              }}
+            >
+              <span className="map-pin-dot" />
+              <span className="map-pin-name">{p.name}</span>
+              <span className="map-pin-time">
+                {p.here ? '你在这里' : p.minutes > 0 ? `走 ${p.minutes} 分钟` : '就在旁边'}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="map-footer">
+          <button
+            onClick={() => {
+              if (confirm !== 'sleep') return setConfirm('sleep');
+              send({ type: 'sleep' });
+              onClose();
+            }}
+          >
+            {confirm === 'sleep' ? '确定结束今天？再点一次' : '回家睡觉（结束今天）'}
+          </button>
+          <button
+            className="map-reset"
+            onClick={() => {
+              if (confirm !== 'reset') return setConfirm('reset');
+              send({ type: 'newGame' });
+              onClose();
+            }}
+          >
+            {confirm === 'reset' ? '存档会清掉，再点一次确定' : '重新开始'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 地图上的小溪、小路、房子（手绘风格的占位画） */
+function MapArt() {
+  return (
+    <svg className="map-art" viewBox="0 0 100 62" preserveAspectRatio="none" aria-hidden>
+      <path className="map-river" d="M-2 10 C 15 6, 25 20, 40 15 S 62 8, 72 17 S 92 30, 102 24" />
+      <path className="map-road" d="M30 38 C 38 30, 45 24, 52 17" />
+      <path className="map-road" d="M30 38 C 45 42, 60 36, 78 37" />
+      <path className="map-road" d="M16 27 C 20 32, 25 36, 30 38" />
+      <g className="map-house">
+        <path d="M19 44 l4.5 -3.5 l4.5 3.5 v5 h-9 z" />
+      </g>
+      <g className="map-house">
+        <path d="M72 46 l4 -3 l4 3 v4 h-8 z" />
+        <path d="M81 47 l3 -2.5 l3 2.5 v3.5 h-6 z" />
+        <path d="M66 48 l3 -2.5 l3 2.5 v3.5 h-6 z" />
+      </g>
+      <g className="map-field">
+        <path d="M6 20 h9 v5.5 h-9 z M6 21.8 h9 M6 23.6 h9" />
+      </g>
+      <ellipse className="map-pond" cx="30" cy="40" rx="4.5" ry="2.6" />
+    </svg>
+  );
+}
+
+function DaySummaryCard({ store, send }: { store: Store<UiState>; send: Send }) {
+  const summary = useUi(store, (s) => s.daySummary);
+  useEffect(() => {
+    if (!summary) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        send({ type: 'dismissSummary' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [summary, send]);
+  if (!summary) return null;
+  return (
+    <div className="catch-backdrop">
+      <div className="summary card">
+        <h2>{summary.title}</h2>
+        <ul>
+          {summary.lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+        <div className="summary-tomorrow">明天 · {summary.tomorrow}</div>
+        <div className="catch-actions">
+          <button className="primary" onClick={() => send({ type: 'dismissSummary' })}>
+            起床
+            <kbd>Enter</kbd>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function PondHud({ store, send }: { store: Store<UiState>; send: Send }) {
@@ -189,12 +324,14 @@ function BaitBar({ fishing, send }: { fishing: FishingUi; send: Send }) {
       {fishing.baits.map((b, i) => (
         <button
           key={b.id}
-          className={`bait${b.id === fishing.baitId ? ' is-active' : ''}`}
+          className={`bait${b.id === fishing.baitId ? ' is-active' : ''}${b.count === 0 ? ' is-empty' : ''}`}
           title={b.note}
+          disabled={b.count === 0}
           onClick={() => send({ type: 'selectBait', baitId: b.id })}
         >
           <span className="bait-key">{i + 1}</span>
           {b.name}
+          <span className="bait-count">{b.count}</span>
         </button>
       ))}
     </div>

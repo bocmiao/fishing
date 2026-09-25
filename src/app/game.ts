@@ -1,9 +1,12 @@
 import { Application, Container } from 'pixi.js';
 import { getGameData } from '../sim/data/gameData';
 import { Rng } from '../sim/rng/rng';
-import { GameState } from '../sim/state';
+import { restore, serialize } from '../sim/save';
+import { WEATHER_NAMES, GameState, type DaySummary } from '../sim/state';
+import { SEASON_NAMES } from '../sim/time/clock';
 import { CommandBus } from './commands';
-import type { LaunchParams } from './params';
+import { randomSeed, type LaunchParams } from './params';
+import { clearSave, readSave, writeSave } from './saveStore';
 import type { Scene, SceneContext, ViewSize } from './scene';
 import type { Store } from './store';
 import type { UiState } from '../ui/uiState';
@@ -14,6 +17,8 @@ const MIN_ASPECT = 4 / 3;
 const MAX_ASPECT = 21 / 9;
 /** 单帧最长步长（秒），防止切回窗口时一下跳太远 */
 const MAX_STEP = 1 / 20;
+/** 自动存档的间隔（现实秒） */
+const AUTOSAVE_SECONDS = 15;
 
 /** 按名字创建画面 */
 export type SceneFactory = (name: string, ctx: SceneContext) => Scene;
@@ -21,7 +26,11 @@ export type SceneFactory = (name: string, ctx: SceneContext) => Scene;
 export class Game {
   readonly app = new Application();
   readonly commands = new CommandBus();
-  readonly state: GameState;
+  state: GameState;
+  /** 这一局是不是从存档接着玩的 */
+  private readonly loaded: boolean;
+  private saveTimer = 0;
+  private summaryId = 0;
   /** 所有画面都放在这里，按窗口缩放 */
   private readonly world = new Container();
   private scene: Scene | null = null;
@@ -37,7 +46,17 @@ export class Game {
     private readonly params: LaunchParams,
     private readonly ui: Store<UiState>,
   ) {
-    this.state = new GameState(getGameData(), params.seed);
+    const saved = params.shot || params.fresh ? null : readSave();
+    let state: GameState | null = null;
+    if (saved) {
+      try {
+        state = restore(getGameData(), saved);
+      } catch (err) {
+        console.warn('存档读不出来，重新开始', err);
+      }
+    }
+    this.loaded = state !== null;
+    this.state = state ?? new GameState(getGameData(), params.seed);
   }
 
   async start(mount: HTMLElement, factory: SceneFactory): Promise<void> {
@@ -74,9 +93,24 @@ export class Game {
     });
     this.commands.on((cmd) => {
       if (cmd.type === 'goto' && cmd.scene !== this.sceneName) void this.goto(cmd.scene);
+      else if (cmd.type === 'travel') this.travel(cmd.placeId);
+      else if (cmd.type === 'sleep') this.state.sleep();
+      else if (cmd.type === 'newGame') this.newGame();
+      else if (cmd.type === 'dismissSummary') {
+        this.state.clock.paused = false;
+        this.ui.set({ daySummary: null });
+      }
     });
+    if (!this.params.shot) {
+      // 关掉页面、切到别的标签页时存一下
+      window.addEventListener('pagehide', () => this.save());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') this.save();
+      });
+    }
 
-    await this.goto(this.params.scene, this.params.warmup);
+    const first = this.params.scene ?? (this.loaded ? this.state.place : this.state.data.homePlace);
+    await this.goto(first, this.params.warmup);
 
     if (this.params.shot) {
       // 截图模式：不自动走帧，由截图脚本调用 step() 精确推进
@@ -105,19 +139,107 @@ export class Game {
       scene.resize(this.ctx.view);
       this.world.addChild(scene.root);
       this.scene = scene;
+      if (this.state.data.placeById.has(name)) this.state.place = name;
+      this.pushPlaces();
       // 预先模拟一段时间，让画面进入自然状态
       const warmupSteps = Math.round(warmup * 30);
       for (let i = 0; i < warmupSteps; i++) scene.update(1 / 30);
       this.ui.set({ scene: name });
+      this.save();
     } finally {
       this.switching = false;
     }
   }
 
+  /** 从地图去某个地方：先花掉路上的时间；走到半夜就直接回家睡觉 */
+  private travel(placeId: string): void {
+    const data = this.state.data;
+    const place = data.placeById.get(placeId);
+    if (!place || placeId === this.sceneName || this.switching) return;
+    const from = data.placeById.get(this.state.place)?.area ?? 'home';
+    const { reachedDayEnd } = this.state.clock.addMinutes(data.travelMinutes(from, place.area));
+    if (reachedDayEnd) this.state.sleep();
+    else void this.goto(placeId);
+  }
+
+  private newGame(): void {
+    clearSave();
+    this.state = new GameState(getGameData(), randomSeed());
+    this.ctx.state = this.state;
+    this.ui.set({ daySummary: null, money: this.state.money });
+    this.sceneName = '';
+    void this.goto(this.state.data.homePlace);
+  }
+
+  /** 存档（截图模式不存，免得影响之后的正常游戏） */
+  save(): void {
+    if (this.params.shot) return;
+    writeSave(serialize(this.state));
+    this.saveTimer = 0;
+  }
+
+  /** 每帧更新之后：处理睡觉、自动存档、刷新钱数 */
+  private afterUpdate(dt: number): void {
+    const state = this.state;
+    const summary = state.lastSummary;
+    if (summary) {
+      state.lastSummary = null;
+      this.showSummary(summary);
+      // 醒来在家里
+      if (this.sceneName !== state.data.homePlace) void this.goto(state.data.homePlace);
+      else this.save();
+    }
+    this.saveTimer += dt;
+    if (this.saveTimer > AUTOSAVE_SECONDS) this.save();
+    if (this.ui.get().money !== state.money) this.ui.set({ money: state.money });
+  }
+
+  private showSummary(summary: DaySummary): void {
+    // 看小结的时候新的一天先不走
+    this.state.clock.paused = true;
+    const s = summary.stats;
+    const clock = this.state.clock;
+    const lines: string[] = [];
+    if (s.caught > 0) lines.push(`钓到 ${s.caught} 条鱼，放进鱼护 ${s.kept} 条`);
+    if (s.worms > 0) lines.push(`在菜地挖到 ${s.worms} 条蚯蚓`);
+    if (s.harvested > 0) lines.push(`收获了 ${s.harvested} 份作物`);
+    if (s.earned > 0 || s.spent > 0) lines.push(`进账 ¥${s.earned}，花销 ¥${s.spent}`);
+    if (summary.ripened > 0) lines.push(`夜里有 ${summary.ripened} 块地的作物熟了`);
+    if (lines.length === 0) lines.push('安安静静的一天');
+    this.ui.set({
+      daySummary: {
+        id: ++this.summaryId,
+        title: `第 ${summary.day + 1} 天结束`,
+        lines,
+        tomorrow: `第 ${clock.day + 1} 天 · ${SEASON_NAMES[clock.season]} · ${WEATHER_NAMES[summary.weather]}`,
+      },
+    });
+  }
+
+  /** 地图上各个地方离这里多远 */
+  private pushPlaces(): void {
+    const data = this.state.data;
+    const here = data.placeById.get(this.state.place);
+    this.ui.set({
+      places: data.places.map((p) => ({
+        id: p.id,
+        name: p.name,
+        note: p.note,
+        x: p.x,
+        y: p.y,
+        minutes: here ? data.travelMinutes(here.area, p.area) : 0,
+        here: p.id === this.state.place,
+      })),
+    });
+  }
+
   /** 按固定步长推进若干秒（截图和测试用） */
   step(seconds: number, fps = 60): void {
     const steps = Math.max(1, Math.round(seconds * fps));
-    for (let i = 0; i < steps; i++) this.scene?.update(1 / fps);
+    for (let i = 0; i < steps; i++) {
+      this.scene?.update(1 / fps);
+      this.afterUpdate(1 / fps);
+    }
     this.app.render();
   }
 
@@ -140,6 +262,7 @@ export class Game {
     const t0 = performance.now();
     this.scene?.update(Math.min(dt, MAX_STEP));
     this.updateMsAccum += performance.now() - t0;
+    this.afterUpdate(dt);
     this.frameCount++;
     this.fpsTimer += dt;
     if (this.fpsTimer >= 0.5) {
