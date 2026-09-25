@@ -1,0 +1,23 @@
+{
+  "name": "菜地",
+  "plots": 6,
+  "minutes": {
+    "clear": 20,
+    "till": 10,
+    "sow": 5,
+    "water": 3,
+    "harvest": 5,
+    "fertilize": 3
+  },
+  "worms": {
+    "clearChance": 0.9,
+    "tillChance": 0.75,
+    "min": 1,
+    "max": 3,
+    "rainBonus": 1,
+    "compostBonus": 2
+  },
+  "compostYieldBonus": 0.5,
+  "compostGrowBonus": 1,
+  "seedReturnChance": 0.6
+}

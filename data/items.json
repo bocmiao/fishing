@@ -1,0 +1,74 @@
+{
+  "baits": [
+    {
+      "id": "worm",
+      "name": "蚯蚓",
+      "note": "什么鱼都爱吃，荤饵。",
+      "startCount": 20,
+      "price": 1
+    },
+    {
+      "id": "dough",
+      "name": "面饵",
+      "note": "面粉和的饵，鲫鱼和小杂鱼最爱。",
+      "startCount": 20,
+      "price": 1
+    },
+    {
+      "id": "corn",
+      "name": "玉米",
+      "note": "个头大，小鱼咬不动，专等大鱼。",
+      "startCount": 10,
+      "price": 2
+    }
+  ],
+  "rods": [
+    {
+      "id": "grandpa_bamboo",
+      "name": "外公的老竹竿",
+      "note": "竹节磨得发亮，握把上缠着旧麻绳。",
+      "range": 640,
+      "accuracy": 0.82,
+      "reelSpeed": 150
+    },
+    {
+      "id": "carbon",
+      "name": "碳素竿",
+      "note": "老韩店里最常卖的竿，轻、硬，抛得远。",
+      "range": 760,
+      "accuracy": 0.9,
+      "reelSpeed": 180
+    },
+    {
+      "id": "han_handmade",
+      "name": "老韩手作竿",
+      "note": "老韩亲手削的竹竿，和外公那根是一片竹林里出来的。",
+      "range": 880,
+      "accuracy": 0.95,
+      "reelSpeed": 215
+    }
+  ],
+  "lines": [
+    {
+      "id": "basic",
+      "name": "普通鱼线",
+      "strength": 1.0
+    },
+    {
+      "id": "tough",
+      "name": "耐磨线",
+      "strength": 1.2
+    },
+    {
+      "id": "big",
+      "name": "大物线",
+      "strength": 1.45
+    }
+  ],
+  "keepNetCapacity": 8,
+  "startMoney": 100,
+  "startGoods": {
+    "scallion": 6,
+    "flour": 4
+  }
+}
