@@ -16,8 +16,7 @@ import { FishAtlas } from '../render/fish/fishAtlas';
 import { FishBody } from '../render/fish/fishBody';
 import { renderFishImage } from '../render/fish/fishImage';
 import type { KoiLook } from '../render/fish/koiLook';
-import { pondFishLook } from '../render/fish/pondFishLook';
-import { speciesLook } from '../render/fish/speciesLook';
+import { fishLook, pondFishLook } from '../render/fish/pondFishLook';
 import { Flock, type FishAgent } from '../render/flock/flock';
 import { ambientAt } from '../render/fx/ambient';
 import { PelletField } from '../render/fx/pellets';
@@ -267,8 +266,10 @@ export class PondScene extends Scene {
 
   private showTag(k: Koi): void {
     const f = k.fish;
-    const detail = f.variety
-      ? `${f.variety}锦鲤 · ${f.origin}`
+    // 钓回来的锦鲤按它的花纹叫品种名
+    const variety = f.variety ?? (this.ctx.state.isKoi(f.speciesId ?? '') ? k.look.variety : null);
+    const detail = variety
+      ? `${variety}锦鲤 · ${f.origin}`
       : `${formatWeight(f.weightKg)} · ${f.origin}`;
     this.tagName.text = f.name;
     this.tagDetail.text = detail;
@@ -298,7 +299,7 @@ export class PondScene extends Scene {
     let url = this.images.get(uid);
     const species = this.ctx.state.data.speciesById.get(speciesId);
     if (!url && species) {
-      url = renderFishImage(speciesLook(species, new Rng(lookSeed)), 0.7);
+      url = renderFishImage(fishLook(species, lookSeed), 0.7);
       this.images.set(uid, url);
     }
     return url ?? '';

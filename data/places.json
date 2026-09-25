@@ -31,15 +31,68 @@
       "note": "村口外公的老饭馆，隔壁是杂货铺和鱼摊。",
       "x": 0.78,
       "y": 0.6
+    },
+    {
+      "id": "lake",
+      "name": "荷花湖",
+      "area": "lake",
+      "note": "湖里有大鲤鱼、黑鱼，听说还有人放生的锦鲤。",
+      "x": 0.56,
+      "y": 0.84,
+      "requires": "road_lake"
     }
   ],
   "home": "pond",
   "travel": [
-    { "from": "home", "to": "home", "minutes": 2 },
-    { "from": "home", "to": "creek", "minutes": 10 },
-    { "from": "home", "to": "village", "minutes": 20 },
-    { "from": "creek", "to": "village", "minutes": 25 },
-    { "from": "creek", "to": "creek", "minutes": 0 },
-    { "from": "village", "to": "village", "minutes": 0 }
+    {
+      "from": "home",
+      "to": "home",
+      "minutes": 2
+    },
+    {
+      "from": "home",
+      "to": "creek",
+      "minutes": 10
+    },
+    {
+      "from": "home",
+      "to": "village",
+      "minutes": 20
+    },
+    {
+      "from": "creek",
+      "to": "village",
+      "minutes": 25
+    },
+    {
+      "from": "creek",
+      "to": "creek",
+      "minutes": 0
+    },
+    {
+      "from": "village",
+      "to": "village",
+      "minutes": 0
+    },
+    {
+      "from": "home",
+      "to": "lake",
+      "minutes": 25
+    },
+    {
+      "from": "creek",
+      "to": "lake",
+      "minutes": 20
+    },
+    {
+      "from": "village",
+      "to": "lake",
+      "minutes": 15
+    },
+    {
+      "from": "lake",
+      "to": "lake",
+      "minutes": 0
+    }
   ]
 }

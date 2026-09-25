@@ -458,7 +458,11 @@ export class RestaurantScene extends Scene {
         this.updateBoard();
         break;
       case 'toTank': {
-        const uids = cmd.uid === 'all' ? state.keepNet.map((f) => f.uid) : [cmd.uid];
+        // 锦鲤只看不吃：全部放进缸里时跳过锦鲤
+        const uids =
+          cmd.uid === 'all'
+            ? state.keepNet.filter((f) => !state.isKoi(f.speciesId)).map((f) => f.uid)
+            : [cmd.uid];
         let moved = 0;
         for (const uid of uids) if (state.toTank(uid)) moved++;
         if (moved < uids.length) this.toast('活鱼缸满了', 'info');
@@ -634,6 +638,7 @@ export class RestaurantScene extends Scene {
       name: species?.name ?? f.speciesId,
       weightText: formatWeight(f.weightKg),
       price: species ? fishPrice(species, f) : 0,
+      koi: species?.koi ?? false,
     };
   }
 

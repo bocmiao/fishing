@@ -64,6 +64,8 @@ export const FishSpeciesSchema = z.object({
   price: z.number().min(0),
   /** 外公笔记里的线索 */
   note: z.string(),
+  /** 被放生的锦鲤：只能放进方塘养，不能做菜、周叔也不收；画的时候按锦鲤的花纹画 */
+  koi: z.boolean().default(false),
   look: z.object({
     base: hexColor,
     back: hexColor,
@@ -104,6 +106,10 @@ export const SpotSchema = z.object({
   name: z.string().min(1),
   /** 水流方向和速度（像素 / 秒） */
   flow: z.tuple([z.number(), z.number()]),
+  /** 水底的样子：溪底多卵石，湖底多淤泥 */
+  bed: z.enum(['creek', 'lake']).default('creek'),
+  /** 水面上有几丛荷叶 */
+  lilies: z.number().int().min(0).default(0),
   positions: z.array(FishingPositionSchema).min(1),
 });
 export type Spot = z.infer<typeof SpotSchema>;
@@ -250,7 +256,7 @@ export const FarmSchema = z.object({
 });
 export type FarmConfig = z.infer<typeof FarmSchema>;
 
-export const AREAS = ['home', 'creek', 'village'] as const;
+export const AREAS = ['home', 'creek', 'village', 'lake'] as const;
 export type Area = (typeof AREAS)[number];
 
 export const PlacesSchema = z.object({
@@ -264,6 +270,8 @@ export const PlacesSchema = z.object({
       /** 在手绘地图上的位置（0~1） */
       x: z.number().min(0).max(1),
       y: z.number().min(0).max(1),
+      /** 要先买了哪项升级才能去（例如修路） */
+      requires: z.string().optional(),
     }),
   ),
   /** 睡醒时在哪 */
@@ -362,6 +370,8 @@ export const UpgradeEffectSchema = z
     cookingEase: z.number().positive(),
     /** 口碑多涨几成 */
     reputationBonus: z.number().min(0),
+    /** 能去一个新地方了（地点 id） */
+    unlockPlace: z.string(),
   })
   .partial();
 export type UpgradeEffect = z.infer<typeof UpgradeEffectSchema>;

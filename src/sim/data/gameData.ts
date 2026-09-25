@@ -166,6 +166,16 @@ export function parseGameData(raw: RawGameData): GameData {
       throw new Error(`升级 ${u.id} 换上的鱼线 ${u.effect.line} 不存在`);
     }
   }
+  for (const p of places.places) {
+    if (p.requires && !upgradeById.has(p.requires)) {
+      throw new Error(`地点 ${p.id} 要求的升级 ${p.requires} 不存在`);
+    }
+  }
+  for (const u of upgrades.upgrades) {
+    if (u.effect.unlockPlace && !placeById.has(u.effect.unlockPlace)) {
+      throw new Error(`升级 ${u.id} 解锁的地点 ${u.effect.unlockPlace} 不存在`);
+    }
+  }
   for (const g of restaurant.guests) {
     for (const id of g.likes) {
       if (!recipeById.has(id)) throw new Error(`客人 ${g.id} 爱吃的 ${id} 不在菜谱里`);

@@ -81,13 +81,5 @@
       "minutes": 30
     }
   ],
-  "shop": [
-    "worm",
-    "dough",
-    "corn",
-    "scallion",
-    "flour",
-    "tofu",
-    "greens"
-  ]
+  "shop": ["worm", "dough", "corn", "scallion", "flour", "tofu", "greens"]
 }

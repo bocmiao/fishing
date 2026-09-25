@@ -163,6 +163,17 @@ export class Game {
     const data = this.state.data;
     const place = data.placeById.get(placeId);
     if (!place || placeId === this.sceneName || this.switching) return;
+    if (!this.state.placeOpen(placeId)) {
+      const need = place.requires ? data.upgradeById.get(place.requires)?.name : '';
+      this.ui.set({
+        toast: {
+          id: ++this.toastId,
+          text: `还去不了${place.name}：要先「${need}」（按 U 添置）`,
+          tone: 'info',
+        },
+      });
+      return;
+    }
     const from = data.placeById.get(this.state.place)?.area ?? 'home';
     const { reachedDayEnd } = this.state.clock.addMinutes(data.travelMinutes(from, place.area));
     if (reachedDayEnd) this.state.sleep();
@@ -195,6 +206,13 @@ export class Game {
     }
     if (result === 'ok') {
       this.pushUpgrades();
+      this.pushPlaces();
+      if (upgrade?.effect.unlockPlace) {
+        const name = state.data.placeById.get(upgrade.effect.unlockPlace)?.name ?? '';
+        this.ui.set({
+          toast: { id: ++this.toastId, text: `路修好了！打开地图（M）就能去${name}`, tone: 'good' },
+        });
+      }
       this.scene?.refresh();
       this.save();
     }
@@ -328,6 +346,9 @@ export class Game {
         y: p.y,
         minutes: here ? data.travelMinutes(here.area, p.area) : 0,
         here: p.id === this.state.place,
+        locked: this.state.placeOpen(p.id)
+          ? ''
+          : `要先「${data.upgradeById.get(p.requires ?? '')?.name ?? ''}」`,
       })),
     });
   }

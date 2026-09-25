@@ -190,7 +190,7 @@ function MapPanel({
           {places.map((p) => (
             <button
               key={p.id}
-              className={`map-pin${p.here ? ' is-here' : ''}`}
+              className={`map-pin${p.here ? ' is-here' : ''}${p.locked ? ' is-locked' : ''}`}
               style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
               title={p.note}
               disabled={p.here}
@@ -202,7 +202,13 @@ function MapPanel({
               <span className="map-pin-dot" />
               <span className="map-pin-name">{p.name}</span>
               <span className="map-pin-time">
-                {p.here ? '你在这里' : p.minutes > 0 ? `走 ${p.minutes} 分钟` : '就在旁边'}
+                {p.here
+                  ? '你在这里'
+                  : p.locked
+                    ? p.locked
+                    : p.minutes > 0
+                      ? `走 ${p.minutes} 分钟`
+                      : '就在旁边'}
               </span>
             </button>
           ))}
@@ -253,6 +259,13 @@ function MapArt() {
         <path d="M6 20 h9 v5.5 h-9 z M6 21.8 h9 M6 23.6 h9" />
       </g>
       <ellipse className="map-pond" cx="30" cy="40" rx="4.5" ry="2.6" />
+      <path className="map-road" d="M30 38 C 38 46, 46 50, 56 52" />
+      <ellipse className="map-lake" cx="56" cy="55" rx="11" ry="4.5" />
+      <g className="map-lotus">
+        <circle cx="51" cy="54" r="1.2" />
+        <circle cx="60" cy="56.5" r="1" />
+        <circle cx="63" cy="53.5" r="0.9" />
+      </g>
     </svg>
   );
 }
@@ -663,8 +676,8 @@ function TankPanel({ r, send }: { r: RestaurantUi; send: Send }) {
           <FishRow
             key={f.uid}
             f={f}
-            action="放进缸里"
-            disabled={full}
+            action={f.koi ? '锦鲤只看不吃' : '放进缸里'}
+            disabled={full || f.koi}
             onClick={() => send({ type: 'toTank', uid: f.uid })}
           />
         ))}
@@ -736,8 +749,12 @@ function StallPanel({ r, send }: { r: RestaurantUi; send: Send }) {
                 {f.weightText} · {f.from}
               </span>
             </div>
-            <button className="primary" onClick={() => send({ type: 'sellFish', uid: f.uid })}>
-              卖 ¥{f.price}
+            <button
+              className="primary"
+              disabled={f.koi}
+              onClick={() => send({ type: 'sellFish', uid: f.uid })}
+            >
+              {f.koi ? '周叔不收锦鲤' : `卖 ¥${f.price}`}
             </button>
           </li>
         ))}

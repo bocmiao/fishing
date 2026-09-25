@@ -1,6 +1,6 @@
 /**
  * 经济节奏报告（调参工具）：npm run balance
- * 模拟一个"普通玩家"过 40 天：每天钓鱼、种地、傍晚开店、有钱就按顺序添置升级，
+ * 模拟一个"普通玩家"过一年（56 天）：每天钓鱼、种地、傍晚开店、有钱就按顺序添置升级，
  * 打印每天赚多少、什么时候买得起哪一项。数值都是估计，用来看节奏快慢，不是精确预测。
  */
 import { it } from 'vitest';
@@ -24,6 +24,16 @@ const CATCH_MIX: [string, number][] = [
   ['swamp_eel', 0.06],
 ];
 
+/** 修了路以后去荷花湖钓（锦鲤放进方塘，不算收入） */
+const LAKE_MIX: [string, number][] = [
+  ['common_carp', 0.28],
+  ['grass_carp', 0.24],
+  ['bream', 0.26],
+  ['snakehead', 0.1],
+  ['culter', 0.1],
+  ['released_koi', 0.02],
+];
+
 /** 普通玩家添置的先后顺序 */
 const WISHLIST = [
   'keepnet_1',
@@ -37,6 +47,7 @@ const WISHLIST = [
   'pond_1',
   'sign_1',
   'stove_1',
+  'road_lake',
   'keepnet_2',
   'farm_2',
   'line_big',
@@ -74,12 +85,19 @@ function tendFarm(state: GameState, rng: Rng, day: number): void {
 /** 开店前去阿婆那里补配料：缸里要红烧、清蒸的鱼有几条就备几根葱，面粉留两份 */
 function restock(state: GameState): void {
   const needScallion = state.restaurant.tank.filter((f) =>
-    ['crucian', 'hooksnout', 'swamp_eel'].includes(f.speciesId),
+    ['crucian', 'hooksnout', 'swamp_eel', 'common_carp', 'bream', 'culter'].includes(f.speciesId),
   ).length;
   const short = needScallion - state.inventory.count('scallion');
   if (short > 0) state.buy('scallion', short);
   const flour = 2 - state.inventory.count('flour');
   if (flour > 0) state.buy('flour', flour);
+  // 酸菜鱼要青菜，黑鱼片汤要豆腐
+  const grass = state.restaurant.tank.filter((f) => f.speciesId === 'grass_carp').length;
+  const greens = grass * 2 - state.inventory.count('greens');
+  if (greens > 0) state.buy('greens', greens);
+  const snake = state.restaurant.tank.filter((f) => f.speciesId === 'snakehead').length;
+  const tofu = snake - state.inventory.count('tofu');
+  if (tofu > 0) state.buy('tofu', tofu);
 }
 
 /** 按现在的材料挑最赚钱的几道菜 */
@@ -142,14 +160,18 @@ function simulate(seed: number, days: number) {
       if (state.inventory.count('worm') === 0) state.buy('worm', 5);
       state.baitId = 'worm';
       state.useBait();
-      const [speciesId] = rng.weighted(CATCH_MIX, ([, w]) => w)!;
+      const mix = state.placeOpen('lake') ? LAKE_MIX : CATCH_MIX;
+      const [speciesId] = rng.weighted(mix, ([, w]) => w)!;
       const fish = rollFish(data.speciesById.get(speciesId)!, rng);
       state.recordCatch(fish);
       state.keep(fish, 'creek', 'bay');
     }
     tendFarm(state, rng, day);
-    // 鱼护里的鱼进缸，放不下的卖给周叔
-    for (const f of [...state.keepNet]) if (!state.toTank(f.uid)) state.sellFish(f.uid);
+    // 鱼护里的鱼进缸，放不下的卖给周叔；锦鲤放进方塘
+    for (const f of [...state.keepNet]) {
+      if (state.isKoi(f.speciesId)) state.releaseToPond(f.uid) ?? state.releaseToWild(f.uid);
+      else if (!state.toTank(f.uid)) state.sellFish(f.uid);
+    }
     restock(state);
     state.setMenu(pickMenu(state));
     evening(state, rng);
@@ -158,12 +180,12 @@ function simulate(seed: number, days: number) {
       state.sellFish(state.restaurant.tank[0]!.uid);
     }
     income.push(state.money - start);
-    // 有钱就添置（留 ¥60 买种子和饵）
+    // 按顺序添置：买得起下一项就买，买不起就攒着（不跳过去买便宜的）
     for (const id of WISHLIST) {
+      if (state.upgrades.has(id)) continue;
       const u = data.upgradeById.get(id)!;
-      if (!state.upgrades.has(id) && state.money - u.price >= 60 && state.buyUpgrade(id) === 'ok') {
-        bought.set(id, day + 1);
-      }
+      if (state.money - u.price < 60 || state.buyUpgrade(id) !== 'ok') break;
+      bought.set(id, day + 1);
     }
     state.sleep();
   }
@@ -171,22 +193,22 @@ function simulate(seed: number, days: number) {
 }
 
 it('economy report', () => {
-  const runs = Array.from({ length: 12 }, (_, i) => simulate(700 + i, 40));
+  const runs = Array.from({ length: 12 }, (_, i) => simulate(700 + i, 56));
   const lines: string[] = ['', '—— 每天收入（12 局平均）——'];
-  for (const d of [1, 3, 5, 7, 10, 14, 21, 28, 35, 40]) {
+  for (const d of [1, 3, 5, 7, 10, 14, 21, 28, 35, 42, 49, 56]) {
     const avg = runs.reduce((s, r) => s + r.income[d - 1]!, 0) / runs.length;
     lines.push(`第 ${String(d).padStart(2)} 天  ¥${avg.toFixed(0)}`);
   }
-  lines.push('—— 平均第几天买得起（买不起的记作 >40）——');
+  lines.push('—— 平均第几天买得起（一年 56 天，买不起的记作 >56）——');
   for (const id of WISHLIST) {
     const days = runs.map((r) => r.bought.get(id) ?? 99).sort((a, b) => a - b);
     const med = days[Math.floor(days.length / 2)]!;
     const u = data.upgradeById.get(id)!;
     lines.push(
-      `${u.name.padEnd(8, '　')} ¥${String(u.price).padStart(4)}  第 ${med > 40 ? '>40' : String(med).padStart(2)} 天`,
+      `${u.name.padEnd(8, '　')} ¥${String(u.price).padStart(4)}  第 ${med > 56 ? '>56' : String(med).padStart(2)} 天`,
     );
   }
   const rep = runs.reduce((s, r) => s + r.reputation, 0) / runs.length;
-  lines.push(`40 天后口碑平均 ${rep.toFixed(0)}`);
+  lines.push(`一年后口碑平均 ${rep.toFixed(0)}`);
   process.stdout.write(lines.join('\n') + '\n');
 });

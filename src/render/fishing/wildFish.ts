@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
-import type { Rng } from '../../sim/rng/rng';
+import { Rng } from '../../sim/rng/rng';
+import { randomKoiLook } from '../fish/koiLook';
 import type { FishSpecies } from '../../sim/data/schema';
 import type { FishInstance } from '../../sim/fishing/catchRoll';
 import type { FishAtlas } from '../fish/fishAtlas';
@@ -82,14 +83,17 @@ export class WildFishPool {
   ): WildFish {
     const rng = this.rng;
     const length = screenLength(species, fish.lengthCm);
-    const texture = this.atlas.shadowFor(species.shape);
+    const shadow = this.atlas.shadowFor(species.shape);
+    // 野鱼在水里只看得到深色的影子；放生的锦鲤颜色鲜亮，从水面上就能看出花纹
+    // （调用方在一批 add 之后会 atlas.flush()）
+    const texture = species.koi ? this.atlas.add(randomKoiLook(new Rng(fish.lookSeed))) : shadow;
     const aspect =
       (FISH_TEX_H / FISH_TEX_W) *
       (species.shape === 'eel' ? 1.25 : species.shape === 'slender' ? 0.9 : 1.05);
-    const body = new FishBody(texture, texture, length, aspect);
+    const body = new FishBody(texture, shadow, length, aspect);
     const heading = rng.range(0, TAU);
     body.place(x, y, heading);
-    body.mesh.tint = SILHOUETTE_TINT;
+    if (!species.koi) body.mesh.tint = SILHOUETTE_TINT;
     body.shadow.tint = 0x000000;
     this.layer.addChild(body.mesh);
     this.shadowLayer.addChild(body.shadow);
@@ -325,7 +329,7 @@ export class WildFishPool {
       6 + 11 * lift,
     );
     // 越深越淡
-    f.body.mesh.alpha = 0.34 + 0.3 * lift;
+    f.body.mesh.alpha = (0.34 + 0.3 * lift) * (f.species.koi ? 1.5 : 1);
     f.body.shadow.alpha = 0.08 + 0.06 * lift;
   }
 }

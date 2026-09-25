@@ -30,13 +30,14 @@ import { WEATHER_NAMES } from '../sim/state';
 import { TopDownCat } from '../render/cat/topDownCat';
 import { FishAtlas } from '../render/fish/fishAtlas';
 import { renderFishImage } from '../render/fish/fishImage';
-import { speciesLook } from '../render/fish/speciesLook';
+import { fishLook } from '../render/fish/pondFishLook';
 import { AimReticle, Bobber, FishingLine, Rod } from '../render/fishing/tackle';
 import { WildFishPool, type WildFish } from '../render/fishing/wildFish';
 import { ambientAt } from '../render/fx/ambient';
 import { PostOverlay } from '../render/fx/postOverlay';
 import { Rain } from '../render/fx/rain';
 import { Specks } from '../render/fx/specks';
+import { LilyPads } from '../render/props/lilyPads';
 import { renderCreek } from '../render/water/creekBed';
 import { RippleField } from '../render/water/ripples';
 import { WaterSurface } from '../render/water/waterSurface';
@@ -92,6 +93,7 @@ export class FishingScene extends Scene {
   private readonly bank = new Sprite();
   private readonly bedShadowLayer = new Container();
   private readonly surfaceLayer = new Container();
+  private lilies: LilyPads | null = null;
   private atlas!: FishAtlas;
   private pool!: WildFishPool;
   private ripples!: RippleField;
@@ -263,7 +265,14 @@ export class FishingScene extends Scene {
     const pos = this.spot.positions.find((p) => p.id === id) ?? this.spot.positions[0]!;
     this.position = pos;
     const { width: w, height: h } = this.view;
-    const creek = renderCreek(this.ctx.app.renderer, w, h, pos, { x: this.catX, y: this.catY + 8 });
+    const creek = renderCreek(
+      this.ctx.app.renderer,
+      w,
+      h,
+      pos,
+      { x: this.catX, y: this.catY + 8 },
+      this.spot.bed,
+    );
     // 先换上新的，再销毁旧的（着色器还绑着旧纹理）
     const oldBed = this.bed;
     const oldBank = this.bankTex;
@@ -274,6 +283,24 @@ export class FishingScene extends Scene {
     oldBed?.destroy(true);
     oldBank?.destroy(true);
     this.cat.root.position.set(this.catX, this.catY);
+
+    // 湖面上的荷叶（每个钓位不一样）
+    if (this.lilies) {
+      this.lilies.surface.destroy({ children: true });
+      this.lilies.shadows.destroy({ children: true });
+      this.lilies = null;
+    }
+    if (this.spot.lilies > 0) {
+      const cat = { x: this.catX - 200, y: this.waterBottom - 160, w: 400, h: 200 };
+      this.lilies = new LilyPads(
+        { x: 0, y: 0, w, h: this.waterBottom - 30 },
+        [cat],
+        this.rng.fork(`lily:${pos.id}`),
+        this.spot.lilies,
+      );
+      this.bedShadowLayer.addChild(this.lilies.shadows);
+      this.surfaceLayer.addChildAt(this.lilies.surface, 1);
+    }
 
     // 清掉上一个钓位的鱼
     for (const f of [...this.pool.fish]) this.pool.remove(f);
@@ -767,7 +794,7 @@ export class FishingScene extends Scene {
     const f = this.hooked!;
     const state = this.ctx.state;
     const record = state.recordCatch(f.fish);
-    const look = speciesLook(f.species, new Rng(f.fish.lookSeed));
+    const look = fishLook(f.species, f.fish.lookSeed);
     const sp = f.species;
     const price = fishPrice(sp, f.fish);
     this.ripples.add(f.x, f.y, 1, 1.4, 6);
@@ -996,6 +1023,7 @@ export class FishingScene extends Scene {
 
     this.water.update(dt, this.ripples.ripples);
     this.ripples.update(dt);
+    this.lilies?.update(dt);
     this.rain.update(dt);
     this.specks.update(dt);
     this.cat.update(dt);

@@ -62,6 +62,8 @@ export interface PlaceUi {
   /** 从这里过去要走几分钟（游戏时间） */
   minutes: number;
   here: boolean;
+  /** 还去不了（要先修路）：写着要买哪项升级 */
+  locked: string;
 }
 
 /** 睡觉时弹出的一天小结 */
@@ -116,6 +118,8 @@ export interface ShopFishUi {
   weightText: string;
   /** 卖给周叔的价钱 */
   price: number;
+  /** 锦鲤：不进鱼缸、周叔不收 */
+  koi: boolean;
 }
 
 export interface MenuItemUi {

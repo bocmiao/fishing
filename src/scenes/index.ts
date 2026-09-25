@@ -8,6 +8,7 @@ import { RestaurantScene } from './restaurantScene';
 const SCENES: Record<string, (ctx: SceneContext) => Scene> = {
   pond: (ctx) => new PondScene(ctx),
   fishing: (ctx) => new FishingScene(ctx, { spotId: 'creek' }),
+  lake: (ctx) => new FishingScene(ctx, { spotId: 'lotus_lake' }),
   farm: (ctx) => new FarmScene(ctx),
   restaurant: (ctx) => new RestaurantScene(ctx),
 };

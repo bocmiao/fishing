@@ -83,6 +83,76 @@
       "color": "woodDark"
     },
     {
+      "id": "braised_carp",
+      "name": "红烧鲤鱼",
+      "fish": {
+        "species": ["common_carp"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 55,
+      "note": "大鲤鱼红烧，过年过节少不了。",
+      "color": "woodLight"
+    },
+    {
+      "id": "sour_fish",
+      "name": "酸菜鱼",
+      "fish": {
+        "species": ["grass_carp"],
+        "count": 1
+      },
+      "goods": {
+        "greens": 2
+      },
+      "price": 58,
+      "note": "草鱼片得薄，青菜腌得酸。",
+      "color": "straw"
+    },
+    {
+      "id": "steamed_bream",
+      "name": "清蒸鳊鱼",
+      "fish": {
+        "species": ["bream"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 38,
+      "note": "鳊鱼刺少肉嫩，清蒸最好。",
+      "color": "fishWhite"
+    },
+    {
+      "id": "snakehead_soup",
+      "name": "黑鱼片汤",
+      "fish": {
+        "species": ["snakehead"],
+        "count": 1
+      },
+      "goods": {
+        "tofu": 1
+      },
+      "price": 62,
+      "note": "黑鱼片汤最补，汤白肉嫩。",
+      "color": "cream"
+    },
+    {
+      "id": "steamed_culter",
+      "name": "清蒸翘嘴",
+      "fish": {
+        "species": ["culter"],
+        "count": 1
+      },
+      "goods": {
+        "scallion": 1
+      },
+      "price": 52,
+      "note": "翘嘴肉细，蒸出来一点腥味都没有。",
+      "color": "fishWhite"
+    },
+    {
       "id": "fish_noodles",
       "name": "鱼汤面",
       "fish": {

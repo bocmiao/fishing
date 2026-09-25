@@ -17,6 +17,8 @@ export interface UpgradeStats {
   tables: number;
   cookingEase: number;
   reputationBonus: number;
+  /** 买了升级才能去的地方（例如修路以后的荷花湖） */
+  unlockedPlaces: string[];
 }
 
 export function baseStats(data: GameData): UpgradeStats {
@@ -32,6 +34,7 @@ export function baseStats(data: GameData): UpgradeStats {
     tables: data.restaurant.tables,
     cookingEase: 1,
     reputationBonus: 0,
+    unlockedPlaces: [],
   };
 }
 
@@ -54,6 +57,7 @@ export function statsWith(data: GameData, owned: ReadonlySet<string>): UpgradeSt
     if (e.tables) s.tables = Math.max(s.tables, e.tables);
     if (e.cookingEase) s.cookingEase = Math.max(s.cookingEase, e.cookingEase);
     if (e.reputationBonus) s.reputationBonus = Math.max(s.reputationBonus, e.reputationBonus);
+    if (e.unlockPlace) s.unlockedPlaces.push(e.unlockPlace);
   }
   return s;
 }
@@ -89,5 +93,6 @@ export function describeEffect(data: GameData, now: UpgradeStats, upgrade: Upgra
   if (e.tables) parts.push(`桌子 ${now.tables} → ${e.tables} 张`);
   if (e.cookingEase) parts.push(`做菜好区宽 ${Math.round((e.cookingEase - 1) * 100)}%`);
   if (e.reputationBonus) parts.push(`口碑多涨 ${Math.round(e.reputationBonus * 100)}%`);
+  if (e.unlockPlace) parts.push(`可以去${data.placeById.get(e.unlockPlace)?.name ?? ''}了`);
   return parts.join('，');
 }

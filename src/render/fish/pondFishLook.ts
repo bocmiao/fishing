@@ -3,8 +3,18 @@ import { Rng } from '../../sim/rng/rng';
 import type { PondFish } from '../../sim/state';
 import { screenLength } from '../fishing/wildFish';
 import { FISH_TEX_H, FISH_TEX_W } from './koiPainter';
-import { koiLookOf, type KoiLook } from './koiLook';
+import type { FishSpecies } from '../../sim/data/schema';
+import { koiLookOf, randomKoiLook, type KoiLook } from './koiLook';
 import { speciesLook } from './speciesLook';
+
+/**
+ * 一条钓上来的鱼长什么样：按它自己的 lookSeed 画，卡片、鱼护、鱼缸、鱼塘里都是同一条。
+ * 被放生的锦鲤按锦鲤的品种花纹画。
+ */
+export function fishLook(species: FishSpecies, lookSeed: number): KoiLook {
+  const rng = new Rng(lookSeed);
+  return species.koi ? randomKoiLook(rng) : speciesLook(species, rng);
+}
 
 export interface PondFishLook {
   look: KoiLook;
@@ -30,7 +40,7 @@ export function pondFishLook(fish: PondFish, data: GameData): PondFishLook {
   }
   const shape = species.shape;
   return {
-    look: speciesLook(species, rng),
+    look: fishLook(species, fish.lookSeed),
     length: screenLength(species, fish.lengthCm),
     aspect: (FISH_TEX_H / FISH_TEX_W) * (shape === 'eel' ? 1.25 : shape === 'slender' ? 0.9 : 1.05),
   };

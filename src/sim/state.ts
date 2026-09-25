@@ -381,12 +381,23 @@ export class GameState {
 
   // ---------------------------------------------------------------- 小馆
 
-  /** 鱼护里的鱼放进小馆的活鱼缸；缸满了返回 false */
+  /** 这条鱼是不是锦鲤（锦鲤只看不吃：不进活鱼缸，周叔也不收） */
+  isKoi(speciesId: string): boolean {
+    return this.data.speciesById.get(speciesId)?.koi ?? false;
+  }
+
+  /** 这个地方现在能不能去（有的地方要先修路） */
+  placeOpen(placeId: string): boolean {
+    const place = this.data.placeById.get(placeId);
+    return !!place && (!place.requires || this.upgrades.has(place.requires));
+  }
+
+  /** 鱼护里的鱼放进小馆的活鱼缸；缸满了、是锦鲤、找不到这条鱼都返回 false */
   toTank(uid: number): boolean {
     const r = this.restaurant;
     if (r.tank.length >= this.stats.tankCapacity) return false;
     const i = this.keepNet.findIndex((f) => f.uid === uid);
-    if (i < 0) return false;
+    if (i < 0 || this.isKoi(this.keepNet[i]!.speciesId)) return false;
     r.tank.push(...this.keepNet.splice(i, 1));
     return true;
   }
@@ -396,6 +407,7 @@ export class GameState {
     for (const list of [this.keepNet, this.restaurant.tank]) {
       const i = list.findIndex((f) => f.uid === uid);
       if (i < 0) continue;
+      if (this.isKoi(list[i]!.speciesId)) return 0;
       const [fish] = list.splice(i, 1) as [CaughtFish];
       const species = this.data.speciesById.get(fish.speciesId);
       const price = species ? fishPrice(species, fish) : 0;

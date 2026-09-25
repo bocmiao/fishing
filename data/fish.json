@@ -387,6 +387,392 @@
         "scales": 0,
         "spots": "#5a4a26"
       }
+    },
+    {
+      "id": "common_carp",
+      "name": "鲤鱼",
+      "rarity": "common",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 1.0,
+        "deep": 1.4,
+        "weeds": 0.9,
+        "shallow": 0.5,
+        "rocks": 0.4
+      },
+      "periods": {
+        "morning": 1.2,
+        "day": 0.8,
+        "dusk": 1.3,
+        "night": 0.9
+      },
+      "weather": {
+        "sunny": 0.9,
+        "cloudy": 1.1,
+        "rain": 1.2
+      },
+      "seasons": {
+        "spring": 1.2,
+        "summer": 1.1,
+        "autumn": 1.2,
+        "winter": 0.4
+      },
+      "baits": {
+        "worm": 0.8,
+        "dough": 1.3,
+        "corn": 1.8
+      },
+      "weightKg": {
+        "min": 0.3,
+        "mode": 1.1,
+        "max": 4.5
+      },
+      "condition": 0.018,
+      "shape": "carp",
+      "behavior": {
+        "wariness": 0.5,
+        "nibbles": [2, 4],
+        "biteWindow": 0.8,
+        "approachSpeed": 0.8,
+        "baitThief": 0.04,
+        "school": [1, 2]
+      },
+      "fight": {
+        "style": "stamina",
+        "power": 0.65,
+        "stamina": 13
+      },
+      "price": 30,
+      "note": "湖里的大鲤鱼贼得很，浮漂点好几下才肯吃。玉米最灵。",
+      "look": {
+        "base": "#a88f52",
+        "back": "#6d5a34",
+        "fin": "#b8743a",
+        "finAlpha": 0.6,
+        "scales": 0.75
+      }
+    },
+    {
+      "id": "grass_carp",
+      "name": "草鱼",
+      "rarity": "common",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 1.0,
+        "deep": 0.8,
+        "weeds": 1.6,
+        "shallow": 0.8,
+        "rocks": 0.3
+      },
+      "periods": {
+        "morning": 1.1,
+        "day": 1.1,
+        "dusk": 1.1,
+        "night": 0.6
+      },
+      "weather": {
+        "sunny": 1.1,
+        "cloudy": 1.0,
+        "rain": 1.0
+      },
+      "seasons": {
+        "spring": 1.1,
+        "summer": 1.4,
+        "autumn": 1.0,
+        "winter": 0.3
+      },
+      "baits": {
+        "worm": 0.6,
+        "dough": 1.1,
+        "corn": 1.3
+      },
+      "weightKg": {
+        "min": 0.4,
+        "mode": 1.3,
+        "max": 5
+      },
+      "condition": 0.012,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.4,
+        "nibbles": [1, 3],
+        "biteWindow": 0.9,
+        "approachSpeed": 0.9,
+        "baitThief": 0.03,
+        "school": [1, 3]
+      },
+      "fight": {
+        "style": "stamina",
+        "power": 0.7,
+        "stamina": 14
+      },
+      "price": 28,
+      "note": "水草边一群一群的，吃草长大。力气不小，要慢慢遛。",
+      "look": {
+        "base": "#9d9a5e",
+        "back": "#5a5c36",
+        "fin": "#9a8a5a",
+        "finAlpha": 0.45,
+        "scales": 0.6
+      }
+    },
+    {
+      "id": "bream",
+      "name": "鳊鱼",
+      "rarity": "common",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 1.2,
+        "deep": 1.2,
+        "weeds": 0.8,
+        "shallow": 0.6,
+        "rocks": 0.3
+      },
+      "periods": {
+        "morning": 1.0,
+        "day": 1.1,
+        "dusk": 1.1,
+        "night": 0.7
+      },
+      "weather": {
+        "sunny": 1.0,
+        "cloudy": 1.1,
+        "rain": 1.0
+      },
+      "seasons": {
+        "spring": 1.1,
+        "summer": 1.0,
+        "autumn": 1.2,
+        "winter": 0.6
+      },
+      "baits": {
+        "worm": 1.0,
+        "dough": 1.6,
+        "corn": 0.6
+      },
+      "weightKg": {
+        "min": 0.15,
+        "mode": 0.45,
+        "max": 1.4
+      },
+      "condition": 0.03,
+      "shape": "carp",
+      "behavior": {
+        "wariness": 0.3,
+        "nibbles": [1, 3],
+        "biteWindow": 0.9,
+        "approachSpeed": 1.0,
+        "baitThief": 0.08,
+        "school": [2, 4]
+      },
+      "fight": {
+        "style": "gentle",
+        "power": 0.45,
+        "stamina": 8
+      },
+      "price": 20,
+      "note": "扁扁的一片，一群一群地来。面饵最好使。",
+      "look": {
+        "base": "#b5b8b0",
+        "back": "#6f7a78",
+        "fin": "#9aa0a0",
+        "finAlpha": 0.45,
+        "scales": 0.65
+      }
+    },
+    {
+      "id": "snakehead",
+      "name": "黑鱼",
+      "rarity": "uncommon",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 0.4,
+        "deep": 0.8,
+        "weeds": 1.8,
+        "shallow": 0.7,
+        "rocks": 0.5
+      },
+      "periods": {
+        "morning": 0.9,
+        "day": 0.6,
+        "dusk": 1.4,
+        "night": 1.2
+      },
+      "weather": {
+        "sunny": 0.9,
+        "cloudy": 1.1,
+        "rain": 1.3
+      },
+      "seasons": {
+        "spring": 0.9,
+        "summer": 1.4,
+        "autumn": 1.0,
+        "winter": 0.2
+      },
+      "baits": {
+        "worm": 2.0,
+        "dough": 0.1,
+        "corn": 0.1
+      },
+      "weightKg": {
+        "min": 0.4,
+        "mode": 1.0,
+        "max": 3.5
+      },
+      "condition": 0.01,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.55,
+        "nibbles": [0, 1],
+        "biteWindow": 0.6,
+        "approachSpeed": 1.3,
+        "baitThief": 0,
+        "school": [1, 1]
+      },
+      "fight": {
+        "style": "burst",
+        "power": 0.85,
+        "stamina": 11
+      },
+      "price": 45,
+      "note": "荷叶底下的霸王，一口就吞，吞了就猛冲。冲的时候千万别硬拉。",
+      "look": {
+        "base": "#5d5a48",
+        "back": "#2f2e26",
+        "fin": "#4a4838",
+        "finAlpha": 0.5,
+        "scales": 0.3,
+        "spots": "#26251e"
+      }
+    },
+    {
+      "id": "culter",
+      "name": "翘嘴",
+      "rarity": "uncommon",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 1.4,
+        "deep": 0.8,
+        "weeds": 0.6,
+        "shallow": 1.2,
+        "rocks": 0.4
+      },
+      "periods": {
+        "morning": 1.5,
+        "day": 0.6,
+        "dusk": 1.6,
+        "night": 0.4
+      },
+      "weather": {
+        "sunny": 1.1,
+        "cloudy": 1.0,
+        "rain": 0.9
+      },
+      "seasons": {
+        "spring": 1.0,
+        "summer": 1.3,
+        "autumn": 1.2,
+        "winter": 0.4
+      },
+      "baits": {
+        "worm": 1.5,
+        "dough": 0.6,
+        "corn": 0.2
+      },
+      "weightKg": {
+        "min": 0.2,
+        "mode": 0.7,
+        "max": 2.5
+      },
+      "condition": 0.006,
+      "shape": "slender",
+      "behavior": {
+        "wariness": 0.5,
+        "nibbles": [0, 2],
+        "biteWindow": 0.65,
+        "approachSpeed": 1.5,
+        "baitThief": 0.05,
+        "school": [1, 2]
+      },
+      "fight": {
+        "style": "burst",
+        "power": 0.75,
+        "stamina": 10
+      },
+      "price": 38,
+      "note": "清早傍晚在水面追小鱼，嘴巴往上翘。咬钩快，提竿要快。",
+      "look": {
+        "base": "#c7cdc9",
+        "back": "#7a8a8e",
+        "fin": "#b0b8b8",
+        "finAlpha": 0.4,
+        "scales": 0.5
+      }
+    },
+    {
+      "id": "released_koi",
+      "name": "锦鲤",
+      "rarity": "rare",
+      "spots": ["lotus_lake"],
+      "zones": {
+        "open": 1.0,
+        "deep": 0.6,
+        "weeds": 1.4,
+        "shallow": 0.8,
+        "rocks": 0.3
+      },
+      "periods": {
+        "morning": 1.2,
+        "day": 1.0,
+        "dusk": 1.0,
+        "night": 0.3
+      },
+      "weather": {
+        "sunny": 1.2,
+        "cloudy": 1.0,
+        "rain": 0.8
+      },
+      "seasons": {
+        "spring": 1.2,
+        "summer": 1.0,
+        "autumn": 1.1,
+        "winter": 0.4
+      },
+      "baits": {
+        "worm": 0.8,
+        "dough": 1.2,
+        "corn": 1.5
+      },
+      "weightKg": {
+        "min": 0.6,
+        "mode": 1.2,
+        "max": 3.0
+      },
+      "condition": 0.02,
+      "shape": "carp",
+      "behavior": {
+        "wariness": 0.35,
+        "nibbles": [1, 3],
+        "biteWindow": 0.9,
+        "approachSpeed": 0.8,
+        "baitThief": 0.02,
+        "school": [1, 1]
+      },
+      "fight": {
+        "style": "gentle",
+        "power": 0.55,
+        "stamina": 9
+      },
+      "price": 0,
+      "note": "不知道是谁放生到湖里的锦鲤。外公说：钓到锦鲤，就带回家好好养着。",
+      "look": {
+        "base": "#e8dcc8",
+        "back": "#dd432d",
+        "fin": "#f0e6d8",
+        "finAlpha": 0.6,
+        "scales": 0.4
+      },
+      "koi": true
     }
   ]
 }

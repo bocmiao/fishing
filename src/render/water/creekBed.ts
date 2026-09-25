@@ -30,6 +30,7 @@ uniform vec4 uZones[${MAX_ZONES}];
 uniform float uZoneTypes[${MAX_ZONES}];
 uniform float uZoneCount;
 uniform vec4 uShade;
+uniform float uMud;
 ${COMMON}
 
 const vec3 SILT_DARK = ${glslVec3(0x6f8a78)};
@@ -114,18 +115,19 @@ void main() {
   float depth = 0.4 + 0.6 * deep - 0.32 * nearBank + (fbm(px / 330.0 + 7.0) - 0.5) * 0.22;
   depth = clamp(depth, 0.0, 1.0);
 
-  // 底：淤泥和细沙
+  // 底：淤泥和细沙（湖底淤泥多，颜色深一些、偏绿）
   vec3 col = mix(SILT_DARK, SILT_LIGHT, smoothstep(0.3, 0.7, fbm(px / 160.0 + uSeed)));
+  col = mix(col, SILT_DARK * vec3(0.85, 0.95, 0.85), uMud * 0.5);
   col *= 0.94 + 0.12 * vnoise(px / 7.0);
 
   // 小卵石（越深越少、越看不清）
   float sh1;
-  vec4 s1 = stones(px, 24.0, mix(0.55, 0.15, depth) * (1.0 - weed * 0.6), 4.0, 9.5, uSeed, sh1);
+  vec4 s1 = stones(px, 24.0, mix(0.55, 0.15, depth) * (1.0 - weed * 0.6) * (1.0 - uMud * 0.85), 4.0, 9.5, uSeed, sh1);
   col *= 1.0 - sh1 * 0.22;
   col = mix(col, s1.rgb, s1.a);
   // 大一些的石头
   float sh2;
-  vec4 s2 = stones(px, 70.0, 0.22 * (1.0 - depth * 0.7), 10.0, 19.0, uSeed + 31.0, sh2);
+  vec4 s2 = stones(px, 70.0, 0.22 * (1.0 - depth * 0.7) * (1.0 - uMud * 0.9), 10.0, 19.0, uSeed + 31.0, sh2);
   col *= 1.0 - sh2 * 0.28;
   col = mix(col, s2.rgb, s2.a);
   // 石缝区：大石头挤在一起
@@ -146,8 +148,8 @@ void main() {
     col = mix(col, wc, w * 0.9);
   }
 
-  // 水色：越深越暗、越偏青
-  col = mix(col, WATER, 0.28 + depth * 0.2);
+  // 水色：越深越暗、越偏青；湖水更浑一些
+  col = mix(col, WATER, 0.28 + depth * 0.2 + uMud * 0.12);
   col = mix(col, DEEP, smoothstep(0.35, 1.0, depth) * 0.78);
 
   // 柳荫
@@ -229,6 +231,8 @@ export function renderCreek(
   height: number,
   position: FishingPosition,
   cat: { x: number; y: number },
+  /** 湖底（淤泥多、石头少、水浑一点）还是溪底 */
+  style: 'creek' | 'lake' = 'creek',
 ): CreekTextures {
   const zones = new Float32Array(MAX_ZONES * 4);
   const types = new Float32Array(MAX_ZONES);
@@ -258,6 +262,7 @@ export function renderCreek(
       uZoneTypes: { value: types, type: 'f32', size: MAX_ZONES },
       uZoneCount: { value: Math.min(MAX_ZONES, position.zones.length), type: 'f32' },
       uShade: { value: new Float32Array(shade), type: 'vec4<f32>' },
+      uMud: { value: style === 'lake' ? 1 : 0, type: 'f32' },
     },
   });
   const bed = RenderTexture.create({ width, height, resolution });

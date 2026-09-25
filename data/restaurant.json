@@ -7,19 +7,13 @@
   "menuSize": 4,
   "tables": 4,
   "seatsPerTable": 2,
-  "arrivalMinutes": [
-    8,
-    15
-  ],
+  "arrivalMinutes": [8, 15],
   "patienceMinutes": 45,
   "eatMinutes": 16,
   "helper": {
     "share": 0.7,
     "quality": 0.6,
-    "dishes": [
-      3,
-      5
-    ]
+    "dishes": [3, 5]
   },
   "compostPerFishDish": 0.5,
   "cooking": {
@@ -48,10 +42,7 @@
       "animal": "rabbit",
       "color": "fishWhite",
       "accent": "pink",
-      "likes": [
-        "corn_cake",
-        "stir_greens"
-      ],
+      "likes": ["corn_cake", "stir_greens"],
       "vegetarian": true,
       "minReputation": 0,
       "weight": 1
@@ -62,10 +53,7 @@
       "animal": "duck",
       "color": "cream",
       "accent": "gold",
-      "likes": [
-        "fried_minnows",
-        "fish_noodles"
-      ],
+      "likes": ["fried_minnows", "fish_noodles", "sour_fish"],
       "vegetarian": false,
       "minReputation": 0,
       "weight": 1.4
@@ -76,10 +64,7 @@
       "animal": "dog",
       "color": "straw",
       "accent": "fishWhite",
-      "likes": [
-        "braised_crucian",
-        "corn_cake"
-      ],
+      "likes": ["braised_crucian", "corn_cake"],
       "vegetarian": false,
       "minReputation": 0,
       "weight": 1
@@ -90,10 +75,7 @@
       "animal": "otter",
       "color": "slateBlue",
       "accent": "cream",
-      "likes": [
-        "crucian_tofu_soup",
-        "loach_tofu"
-      ],
+      "likes": ["crucian_tofu_soup", "loach_tofu", "steamed_bream"],
       "vegetarian": false,
       "minReputation": 3,
       "weight": 1
@@ -104,10 +86,7 @@
       "animal": "buffalo",
       "color": "ink",
       "accent": "straw",
-      "likes": [
-        "eel_pot",
-        "braised_crucian"
-      ],
+      "likes": ["eel_pot", "braised_crucian", "braised_carp"],
       "vegetarian": false,
       "minReputation": 10,
       "weight": 0.8
@@ -118,10 +97,7 @@
       "animal": "fox",
       "color": "gold",
       "accent": "fishWhite",
-      "likes": [
-        "steamed_hooksnout",
-        "eel_pot"
-      ],
+      "likes": ["steamed_hooksnout", "eel_pot", "steamed_culter", "snakehead_soup"],
       "vegetarian": false,
       "minReputation": 25,
       "weight": 0.6

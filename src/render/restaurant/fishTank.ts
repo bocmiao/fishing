@@ -5,7 +5,7 @@ import type { CaughtFish } from '../../sim/state';
 import { FishAtlas } from '../fish/fishAtlas';
 import { FishBody } from '../fish/fishBody';
 import { FISH_TEX_H, FISH_TEX_W } from '../fish/koiPainter';
-import { speciesLook } from '../fish/speciesLook';
+import { fishLook } from '../fish/pondFishLook';
 import type { Rect } from '../flock/flock';
 import { screenLength } from '../fishing/wildFish';
 import { PALETTE } from '../palette';
@@ -73,7 +73,7 @@ export class FishTank {
       if (this.fish.some((f) => f.uid === c.uid)) continue;
       const species = this.data.speciesById.get(c.speciesId);
       if (!species) continue;
-      const look = speciesLook(species, new Rng(c.lookSeed));
+      const look = fishLook(species, c.lookSeed);
       const texture = this.atlas.add(look);
       const length = Math.min(this.rect.w * 0.45, screenLength(species, c.lengthCm) * 0.8);
       const aspect =

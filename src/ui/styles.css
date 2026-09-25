@@ -233,6 +233,23 @@ body {
   cursor: default;
 }
 
+.map-pin.is-locked {
+  opacity: 0.55;
+}
+
+.map-pin.is-locked .map-pin-dot {
+  background: var(--ink-soft);
+}
+
+.map-lake {
+  fill: #6a9a84;
+  opacity: 0.6;
+}
+
+.map-lotus circle {
+  fill: #e8a596;
+}
+
 .map-pin-dot {
   width: 14px;
   height: 14px;
