@@ -232,7 +232,7 @@ single isolated object, transparent background, no text, no watermark
 
 ## 5. 图片资源清单
 
-**优先级**：**P0** = 现在就要（M0、M1）· **P1** = 一天循环版本（M2）· **P2** = 正式版（M4、M5）· **方案 C** = 行走版（M7）
+**优先级**：**P0** = 现在就要（M0、M1）· **P1** = 一天循环、菜地和小馆（M2~M4）· **P2** = 正式版（M6、M7）· **方案 C** = 行走版（M9）
 
 **通用规格**：
 - 池底：3840×2160，PNG
@@ -270,6 +270,10 @@ single isolated object, transparent background, no text, no watermark
 | PROP-004 | 乌龟（俯视）×1 | 〔A〕+ a small pond turtle seen from directly above, isolated, transparent background |
 | BOOK-001~010 | 前 10 种鱼的笔记插画 | 见下方模板 |
 | UI-001 | 纸张纹理（可无缝拼接） | seamless cream paper texture, subtle watercolor grain, very light |
+| BG-020 | 菜地地面（俯视）：松软的深色泥土、几道垄沟、地头有石头和杂草，**不画作物** | 〔A〕+ a small vegetable garden plot seen from directly above, soft dark tilled soil in rows, a few stones and weeds at the edges, NO plants in the rows, 16:9 |
+| PROP-010 | 作物俯视图：玉米、小麦、黄豆、葱蒜、青菜，每种 3 个生长阶段（苗、半大、成熟） | 同 PROP-001 结构，seen from directly above；共 15 张 |
+| SCENE-003 | 喵记小馆插画：乡村小饭馆内景，灶台、活鱼缸、四五张木桌、墙上挂鱼拓的位置空着，**桌边空着**（客人单独画、叠上去） | 〔B〕+ a cozy small countryside Chinese eatery interior, wood stove, a live fish tank, four wooden tables, 16:9 |
+| NPC-C01~04 | 小馆客人小人（坐姿，3/4 正面）：兔子、鸭子、老水牛村长、城里来的美食博主（狐狸） | NPC 模板 + sitting at a table |
 
 **NPC 模板**：
 > flat illustration, subtle watercolor texture, thin dark brown outlines, muted palette, an anthropomorphic 〔动物〕 character, 〔身份和外观〕, chibi proportions matching the reference character, gentle expression, simple modern Chinese countryside clothing, transparent background, no text
@@ -299,7 +303,7 @@ NPC 平时只站在摊位后面做待机动作，摊位小人**不需要拆件**
 
 > 界面图标（饵料、渔具、饲料等）和游戏里的鱼都由我用代码绘制，**不需要**画师或图像 AI 制作。
 
-### 方案 C：行走版（M7 再做）
+### 方案 C：行走版（M9 再做）
 
 | 编号 | 内容 | 提示词要点 |
 |---|---|---|
