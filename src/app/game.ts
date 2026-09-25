@@ -418,6 +418,7 @@ export class Game {
           const done = day !== undefined;
           const counted = p.target > 1;
           const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+          const unit = a.condition.type === 'weight' ? ' 公斤' : '';
           return {
             id: a.id,
             name: a.name,
@@ -426,7 +427,9 @@ export class Game {
             day: done ? day + 1 : 0,
             progress: done ? 1 : Math.min(1, p.current / p.target),
             progressText:
-              !done && counted ? `${fmt(Math.min(p.current, p.target))}/${fmt(p.target)}` : '',
+              !done && counted
+                ? `${fmt(Math.min(p.current, p.target))}/${fmt(p.target)}${unit}`
+                : '',
             reward: rewardText(state, a),
           };
         }),
