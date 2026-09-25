@@ -50,12 +50,20 @@ export function progressOf(
         current: state.upgrades.size,
         target: Math.ceil(data.upgrades.length * c.value),
       };
+    case 'flag':
+      return { current: state.flags.has(c.id) ? 1 : 0, target: 1 };
+    case 'menu':
+      return { current: state.restaurant.menu.length, target: c.value };
   }
 }
 
-export function isAchieved(state: GameState, a: Achievement): boolean {
-  const p = progressOf(state, a.condition);
+export function conditionMet(state: GameState, c: AchievementCondition): boolean {
+  const p = progressOf(state, c);
   return p.current >= p.target;
+}
+
+export function isAchieved(state: GameState, a: Achievement): boolean {
+  return conditionMet(state, a.condition);
 }
 
 /**

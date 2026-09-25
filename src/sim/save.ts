@@ -105,6 +105,14 @@ export const SaveSchemaV1 = z.object({
   /** 达成的成就：[id, 第几天] */
   achievements: z.array(z.tuple([z.string(), z.number()])).default([]),
   restaurant: RestaurantSaveSchema.prefault({}),
+  /** 做过的一次性小事（去过哪、打开过什么）；没有这个字段的是加记号之前的老存档 */
+  flags: z.array(z.string()).optional(),
+  /** 新手引导走到第几步；老存档从头开始，做过的步骤会自动跳过 */
+  tutorial: z
+    .object({ step: z.number().int().min(0).default(0), hidden: z.boolean().default(false) })
+    .prefault({}),
+  /** 每道菜亲手做过几次：[菜谱 id, 次数] */
+  cooked: z.array(z.tuple([z.string(), z.number()])).default([]),
 });
 export type SaveData = z.infer<typeof SaveSchemaV1>;
 
@@ -135,6 +143,9 @@ export function serialize(state: GameState): SaveData {
       tank: state.restaurant.tank.map((f) => ({ ...f })),
       menu: [...state.restaurant.menu],
     },
+    flags: [...state.flags],
+    tutorial: { ...state.tutorial },
+    cooked: [...state.cooked.entries()],
   };
 }
 
@@ -143,6 +154,20 @@ export function migrate(raw: unknown): SaveData {
   const version = (raw as { version?: unknown } | null)?.version;
   if (version === 1) return SaveSchemaV1.parse(raw);
   throw new Error(`认不出的存档版本：${String(version)}`);
+}
+
+/**
+ * 后来才加的几项累计记录（新手引导用），老存档里没有：按别的记录估一个下限，
+ * 免得老玩家读档以后被便条要求把做过的事再做一遍。
+ */
+function estimateLaterRecords(state: GameState, saved: Record<string, number>): void {
+  const r = state.records;
+  if (saved.kept === undefined) r.kept = Math.max(0, r.fishCaught - r.released);
+  if (saved.sown === undefined) {
+    const planted = state.plots.filter((p) => p.stage === 'growing' || p.stage === 'ripe').length;
+    r.sown = planted + (r.harvested > 0 ? 1 : 0);
+  }
+  if (saved.tanked === undefined) r.tanked = state.restaurant.tank.length + r.dishes;
 }
 
 /** 从存档还原游戏状态。配置表里已经没有的东西（被删掉的鱼、饵料）直接丢掉 */
@@ -184,12 +209,26 @@ export function restore(data: GameData, raw: unknown): GameState {
     if (data.achievementById.has(id)) state.achievements.set(id, day);
   }
 
+  for (const f of save.flags ?? []) state.flags.add(f);
+  if (!save.flags) {
+    // 加记号之前的老存档：钓过鱼肯定去过小溪，买过升级肯定打开过添置面板
+    if (state.records.fishCaught > 0) state.flags.add('visit:fishing');
+    if (state.upgrades.size > 0) state.flags.add('open:upgrades');
+  }
+  // 配置表里的步骤变少了也不会越界：走完就是走完
+  state.tutorial.step = Math.min(save.tutorial.step, data.tutorial.steps.length);
+  state.tutorial.hidden = save.tutorial.hidden;
+  for (const [id, n] of save.cooked) if (data.recipeById.has(id)) state.cooked.set(id, n);
+
   const r = save.restaurant;
   Object.assign(state.restaurant, {
     ...r,
     tank: r.tank.filter((f) => data.speciesById.has(f.speciesId)),
     menu: r.menu.filter((id) => data.recipeById.has(id)),
   });
+
+  // 要在地块、活鱼缸都还原好以后再估
+  estimateLaterRecords(state, save.records);
 
   const maxUid = Math.max(
     0,

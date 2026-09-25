@@ -30,6 +30,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       <UpgradeButton store={store} send={send} />
       <NotebookButton store={store} send={send} />
       <AchievementBanner store={store} />
+      <TutorialCard store={store} send={send} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {/* 小溪和荷花湖都是钓鱼画面（画面名不同），有钓鱼数据就显示 */}
       <FishingHud store={store} send={send} />
@@ -88,14 +89,25 @@ function UpgradeButton({ store, send }: { store: Store<UiState>; send: Send }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'KeyU') setOpen((o) => !o);
+      if (e.code === 'KeyU') {
+        setOpen((o) => {
+          if (!o) send({ type: 'openUpgrades' });
+          return !o;
+        });
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [send]);
   return (
     <>
-      <button className="nav-button upgrade-button card" onClick={() => setOpen(true)}>
+      <button
+        className="nav-button upgrade-button card"
+        onClick={() => {
+          send({ type: 'openUpgrades' });
+          setOpen(true);
+        }}
+      >
         添置<kbd>U</kbd>
       </button>
       {open && <UpgradePanel store={store} send={send} onClose={() => setOpen(false)} />}
@@ -177,6 +189,72 @@ function AchievementBanner({ store }: { store: Store<UiState> }) {
   );
 }
 
+/** 小满的便条：新手引导，一次只写一件事 */
+function TutorialCard({ store, send }: { store: Store<UiState>; send: Send }) {
+  const t = useUi(store, (s) => s.tutorial);
+  const [folded, setFolded] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  if (!t) return null;
+  return (
+    <div
+      className={`tutorial card${folded ? ' is-folded' : ''}${t.finished ? ' is-finished' : ''}`}
+    >
+      <div className="tutorial-head">
+        <span className="tutorial-avatar" aria-hidden>
+          {t.guide.slice(-1)}
+        </span>
+        <span className="tutorial-guide">{t.guide}的便条</span>
+        {!t.finished && (
+          <span className="tutorial-count">
+            {t.index}/{t.total}
+          </span>
+        )}
+        {!t.finished && (
+          <button className="tutorial-fold" onClick={() => setFolded(!folded)}>
+            {folded ? '展开' : '收起'}
+          </button>
+        )}
+        <button
+          className="tutorial-close"
+          aria-label="不看便条了"
+          onClick={() => (t.finished ? send({ type: 'tutorial', show: false }) : setConfirm(true))}
+        >
+          ×
+        </button>
+      </div>
+      {t.flash && (
+        <div key={t.flash.id} className="tutorial-flash">
+          ✓ {t.flash.text}，做到了！
+        </div>
+      )}
+      {!folded && <p className="tutorial-say">「{t.say}」</p>}
+      {!t.finished && (
+        <div className="tutorial-task">
+          <span className="tutorial-box" />
+          <b>{t.title}</b>
+          {t.progress && <em>{t.progress}</em>}
+        </div>
+      )}
+      {!folded && t.how && <div className="tutorial-how">{t.how}</div>}
+      {confirm && (
+        <div className="tutorial-confirm">
+          <span>不看便条了？以后可以在外公笔记的「玩法」页重新打开。</span>
+          <button
+            className="primary"
+            onClick={() => {
+              setConfirm(false);
+              send({ type: 'tutorial', show: false });
+            }}
+          >
+            关掉
+          </button>
+          <button onClick={() => setConfirm(false)}>再看看</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NotebookButton({ store, send }: { store: Store<UiState>; send: Send }) {
   const [open, setOpen] = useState(false);
   const show = (on: boolean) => {
@@ -200,39 +278,97 @@ function NotebookButton({ store, send }: { store: Store<UiState>; send: Send }) 
       <button className="nav-button notebook-button card" onClick={() => show(true)}>
         笔记<kbd>J</kbd>
       </button>
-      {open && <NotebookPanel store={store} onClose={() => show(false)} />}
+      {open && <NotebookPanel store={store} send={send} onClose={() => show(false)} />}
     </>
   );
 }
 
-/** 外公笔记：图鉴（每种鱼一页）和成就 */
-function NotebookPanel({ store, onClose }: { store: Store<UiState>; onClose: () => void }) {
+type NotebookTab = 'fish' | 'recipes' | 'achievements' | 'help';
+
+/** 外公笔记：鱼的图鉴、菜谱、成就、玩法说明 */
+function NotebookPanel({
+  store,
+  send,
+  onClose,
+}: {
+  store: Store<UiState>;
+  send: Send;
+  onClose: () => void;
+}) {
   const nb = useUi(store, (s) => s.notebook);
-  const [tab, setTab] = useState<'fish' | 'achievements'>('fish');
+  const [tab, setTab] = useState<NotebookTab>('fish');
   if (!nb) return null;
   const caught = nb.species.filter((s) => s.caught).length;
+  const cooked = nb.recipes.filter((r) => r.cooked > 0).length;
+  const tabs: [NotebookTab, string][] = [
+    ['fish', `鱼类图鉴 ${caught}/${nb.species.length}`],
+    ['recipes', `菜谱 ${cooked}/${nb.recipes.length}`],
+    ['achievements', `成就 ${nb.done}/${nb.total}`],
+    ['help', '玩法'],
+  ];
   return (
     <div className="map-backdrop" onClick={onClose}>
       <div className="notebook card" onClick={(e) => e.stopPropagation()}>
         <div className="map-head">
           <span className="map-title">外公笔记</span>
           <div className="notebook-tabs">
-            <button className={tab === 'fish' ? 'is-active' : ''} onClick={() => setTab('fish')}>
-              图鉴 {caught}/{nb.species.length}
-            </button>
-            <button
-              className={tab === 'achievements' ? 'is-active' : ''}
-              onClick={() => setTab('achievements')}
-            >
-              成就 {nb.done}/{nb.total}
-            </button>
+            {tabs.map(([id, label]) => (
+              <button key={id} className={tab === id ? 'is-active' : ''} onClick={() => setTab(id)}>
+                {label}
+              </button>
+            ))}
           </div>
           <span className="map-clock" />
           <button className="map-close" onClick={onClose} aria-label="关上">
             ×
           </button>
         </div>
-        {tab === 'fish' ? (
+        {tab === 'recipes' && (
+          <div className="species-grid recipe-grid">
+            {nb.recipes.map((r) => (
+              <div
+                key={r.id}
+                className={`species-page recipe-page${r.cooked > 0 ? '' : ' is-new'}`}
+              >
+                <div className="recipe-plate" aria-hidden>
+                  <div style={{ background: r.color }} />
+                </div>
+                <div className="species-name">
+                  {r.name}
+                  <span>¥{r.price}</span>
+                </div>
+                <div className="species-stats">{r.ingredients}</div>
+                <div className="recipe-cooked">
+                  {r.cooked > 0 ? `亲手做过 ${r.cooked} 次` : '还没做过'}
+                </div>
+                <div className="species-note">「{r.note}」</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab === 'help' && (
+          <div className="help-pages">
+            {nb.help.map((h) => (
+              <section key={h.title} className="help-section">
+                <h3>{h.title}</h3>
+                <ul>
+                  {h.lines.map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+            {nb.tutorialHidden && !nb.tutorialFinished && (
+              <button
+                className="primary help-tutorial"
+                onClick={() => send({ type: 'tutorial', show: true })}
+              >
+                重新打开小满的便条
+              </button>
+            )}
+          </div>
+        )}
+        {tab === 'fish' && (
           <div className="species-grid">
             {nb.species.map((sp) => (
               <div key={sp.id} className={`species-page${sp.caught ? '' : ' is-unknown'}`}>
@@ -248,7 +384,8 @@ function NotebookPanel({ store, onClose }: { store: Store<UiState>; onClose: () 
               </div>
             ))}
           </div>
-        ) : (
+        )}
+        {tab === 'achievements' && (
           <div className="achievement-groups">
             {nb.groups.map((g) => (
               <div key={g.id} className="achievement-group">

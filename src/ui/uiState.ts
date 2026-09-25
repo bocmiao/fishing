@@ -250,11 +250,47 @@ export interface AchievementUi {
   reward: string;
 }
 
+/** 外公笔记：一道菜的一页 */
+export interface RecipePageUi {
+  id: string;
+  name: string;
+  price: number;
+  ingredients: string;
+  note: string;
+  /** 亲手做过几次 */
+  cooked: number;
+  /** 菜的颜色（画盘子用），#rrggbb */
+  color: string;
+}
+
 export interface NotebookUi {
   species: SpeciesPageUi[];
+  recipes: RecipePageUi[];
   groups: { id: string; name: string; items: AchievementUi[] }[];
   done: number;
   total: number;
+  /** "玩法"页 */
+  help: { title: string; lines: string[] }[];
+  /** 小满的便条现在关着（可以在"玩法"页重新打开） */
+  tutorialHidden: boolean;
+  tutorialFinished: boolean;
+}
+
+/** 小满的便条（新手引导） */
+export interface TutorialUi {
+  guide: string;
+  /** 第几步（从 1 开始）/ 一共几步 */
+  index: number;
+  total: number;
+  title: string;
+  say: string;
+  how: string;
+  /** 这一步有好几个条件时的进度，例如"1/2"；只有一个条件时为空 */
+  progress: string;
+  /** 刚做到的那一步：id 变了就重新播一次"做到了"的动画 */
+  flash: { id: number; text: string } | null;
+  /** 全部做完了：只显示小满的告别，过一会儿自己收起来 */
+  finished: boolean;
 }
 
 export interface Toast {
@@ -282,6 +318,7 @@ export interface UiState {
   upgrades: UpgradeGroupUi[];
   achievementToast: AchievementToastUi | null;
   notebook: NotebookUi | null;
+  tutorial: TutorialUi | null;
   /** 胡须感应：附近有少见的鱼 */
   sense: boolean;
 
@@ -331,6 +368,7 @@ export const initialUiState: UiState = {
   upgrades: [],
   achievementToast: null,
   notebook: null,
+  tutorial: null,
   sense: false,
   pond: null,
   farm: null,

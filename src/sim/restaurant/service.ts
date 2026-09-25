@@ -98,7 +98,7 @@ export class Service {
     private readonly pantry: Pantry,
     private readonly rng: Rng,
     /** 收钱（记进 GameState 的钱和今天的账）；quality 是这道菜做得怎么样 */
-    private readonly earn: (amount: number, quality: number) => void,
+    private readonly earn: (amount: number, quality: number, recipeId: string) => void,
     /** 升级带来的：几张桌子、口碑多涨几成 */
     private readonly opts: { tables: number; reputationBonus: number } = {
       tables: data.restaurant.tables,
@@ -258,7 +258,7 @@ export class Service {
 
   private pay(g: Guest): ServiceEvent {
     const amount = g.price + g.tip;
-    this.earn(amount, g.quality);
+    this.earn(amount, g.quality, g.recipe?.id ?? '');
     this.earned += amount;
     this.served++;
     const gain = reputationGain(g.quality) * (1 + this.opts.reputationBonus);

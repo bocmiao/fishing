@@ -7,16 +7,25 @@ import { formatWeight } from '../sim/fishing/catchRoll';
 import { hashString } from '../sim/rng/rng';
 import { renderFishImage } from '../render/fish/fishImage';
 import { fishLook } from '../render/fish/pondFishLook';
+import { paletteColor } from '../render/palette';
+import { recipeIngredients } from '../sim/restaurant/kitchen';
 import { restore, serialize } from '../sim/save';
 import { WEATHER_NAMES, GameState, type DaySummary } from '../sim/state';
 import { SEASON_NAMES } from '../sim/time/clock';
+import {
+  advanceTutorial,
+  currentStep,
+  howFor,
+  progressText,
+  tutorialFinished,
+} from '../sim/tutorial';
 import { describeEffect, statsWith, upgradeStatus } from '../sim/upgrades';
 import { CommandBus } from './commands';
 import { randomSeed, type LaunchParams } from './params';
 import { clearSave, readSave, writeSave } from './saveStore';
 import type { Scene, SceneContext, ViewSize } from './scene';
 import type { Store } from './store';
-import type { UiState } from '../ui/uiState';
+import type { TutorialUi, UiState } from '../ui/uiState';
 
 /** 逻辑画面高度固定为 1080，宽度按窗口比例在 4:3 ~ 21:9 之间变化 */
 export const VIEW_HEIGHT = 1080;
@@ -44,6 +53,12 @@ export class Game {
   private achievementTimer = 0;
   private achievementCheck = 0;
   private achievementToastId = 0;
+  /** 小满的便条：上次推给界面的内容（没变就不推）、"做到了"动画的编号、告别语还要显示多久 */
+  private tutorialKey = '';
+  private tutorialFlash: TutorialUi['flash'] = null;
+  private farewellTimer = 0;
+  private flashTimer = 0;
+  private flashId = 0;
   /** 外公笔记里鱼的图，按鱼种缓存 */
   private readonly speciesImages = new Map<string, string>();
   private helperRng!: Rng;
@@ -114,8 +129,17 @@ export class Game {
       else if (cmd.type === 'sleep') this.state.sleep();
       else if (cmd.type === 'newGame') this.newGame();
       else if (cmd.type === 'buyUpgrade') this.buyUpgrade(cmd.upgradeId);
-      else if (cmd.type === 'openNotebook') this.pushNotebook();
-      else if (cmd.type === 'dismissSummary') {
+      else if (cmd.type === 'openNotebook') {
+        this.state.flags.add('open:notebook');
+        this.pushNotebook();
+      } else if (cmd.type === 'openUpgrades') this.state.flags.add('open:upgrades');
+      else if (cmd.type === 'tutorial') {
+        this.state.tutorial.hidden = !cmd.show;
+        this.farewellTimer = 0;
+        this.pushTutorial();
+        if (this.ui.get().notebook) this.pushNotebook();
+        this.save();
+      } else if (cmd.type === 'dismissSummary') {
         this.state.clock.paused = false;
         this.ui.set({ daySummary: null });
       }
@@ -158,13 +182,17 @@ export class Game {
       scene.resize(this.ctx.view);
       this.world.addChild(scene.root);
       this.scene = scene;
-      if (this.state.data.placeById.has(name)) this.state.place = name;
+      if (this.state.data.placeById.has(name)) {
+        this.state.place = name;
+        this.state.flags.add(`visit:${name}`);
+      }
       this.pushPlaces();
       this.pushUpgrades();
       // 预先模拟一段时间，让画面进入自然状态
       const warmupSteps = Math.round(warmup * 30);
       for (let i = 0; i < warmupSteps; i++) scene.update(1 / 30);
       this.ui.set({ scene: name });
+      this.pushTutorial();
       this.save();
     } finally {
       this.switching = false;
@@ -198,6 +226,8 @@ export class Game {
     this.state = new GameState(getGameData(), randomSeed());
     this.ctx.state = this.state;
     this.ui.set({ daySummary: null, money: this.state.money });
+    this.tutorialFlash = null;
+    this.farewellTimer = 0;
     this.sceneName = '';
     void this.goto(this.state.data.homePlace);
   }
@@ -296,7 +326,12 @@ export class Game {
         this.save();
         if (this.ui.get().notebook) this.pushNotebook();
       }
+      this.checkTutorial();
     }
+    // 告别语和"做到了"都只显示一会儿（checkTutorial 每 0.25 秒会把变化推给界面）
+    this.farewellTimer = Math.max(0, this.farewellTimer - dt);
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+    if (this.flashTimer === 0) this.tutorialFlash = null;
     this.achievementTimer -= dt;
     if (this.achievementTimer <= 0) {
       const next = this.achievementQueue.shift();
@@ -378,6 +413,58 @@ export class Game {
       : `离「${next.name}」还差 ¥${next.price - state.money}`;
   }
 
+  /** 引导的这一步做到了没有：做到了闪一下"做到了"，走完最后一步说声再见 */
+  private checkTutorial(): void {
+    const state = this.state;
+    const wasFinished = tutorialFinished(state);
+    const done = advanceTutorial(state);
+    if (done.length > 0) {
+      const last = done[done.length - 1]!;
+      this.tutorialFlash = { id: ++this.flashId, text: last.title };
+      this.flashTimer = 3;
+      if (!wasFinished && tutorialFinished(state)) this.farewellTimer = 10;
+      this.save();
+    }
+    this.pushTutorial();
+  }
+
+  /** 把小满的便条推给界面；内容没变就不推 */
+  private pushTutorial(): void {
+    const state = this.state;
+    const t = state.data.tutorial;
+    const step = currentStep(state);
+    let ui: TutorialUi | null = null;
+    if (!state.tutorial.hidden && step) {
+      ui = {
+        guide: t.guide,
+        index: state.tutorial.step + 1,
+        total: t.steps.length,
+        title: step.title,
+        say: step.say,
+        how: howFor(step, [this.sceneName, this.scene?.kind ?? '']),
+        progress: progressText(state, step),
+        flash: this.tutorialFlash,
+        finished: false,
+      };
+    } else if (!state.tutorial.hidden && this.farewellTimer > 0) {
+      ui = {
+        guide: t.guide,
+        index: t.steps.length,
+        total: t.steps.length,
+        title: '',
+        say: t.farewell,
+        how: '',
+        progress: '',
+        flash: this.tutorialFlash,
+        finished: true,
+      };
+    }
+    const key = JSON.stringify(ui);
+    if (key === this.tutorialKey) return;
+    this.tutorialKey = key;
+    this.ui.set({ tutorial: ui });
+  }
+
   /** 外公笔记：每种鱼一页（没钓到过的只有外公的线索），成就按分类列出进度 */
   private pushNotebook(): void {
     const state = this.state;
@@ -434,12 +521,25 @@ export class Game {
           };
         }),
     }));
+    const recipes = data.recipes.map((r) => ({
+      id: r.id,
+      name: r.name,
+      price: r.price,
+      ingredients: recipeIngredients(data, r),
+      note: r.note,
+      cooked: state.cooked.get(r.id) ?? 0,
+      color: `#${paletteColor(r.color).toString(16).padStart(6, '0')}`,
+    }));
     this.ui.set({
       notebook: {
         species,
+        recipes,
         groups,
         done: state.achievements.size,
         total: data.achievements.length,
+        help: data.tutorial.help,
+        tutorialHidden: state.tutorial.hidden,
+        tutorialFinished: tutorialFinished(state),
       },
     });
   }

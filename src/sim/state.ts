@@ -160,6 +160,15 @@ export class GameState {
   records: Records = emptyRecords();
   /** 达成的成就：id → 第几天达成的 */
   readonly achievements = new Map<string, number>();
+  /**
+   * 做过的一次性小事，给新手引导和成就当条件用。
+   * 约定的写法："visit:<地点 id>" 去过某个地方，"open:notebook" / "open:upgrades" 打开过笔记、添置面板。
+   */
+  readonly flags = new Set<string>();
+  /** 新手引导走到第几步（等于步数就是走完了）；hidden = 玩家把小满的便条关掉了 */
+  readonly tutorial = { step: 0, hidden: false };
+  /** 每道菜亲手做过几次（外公笔记的菜谱页） */
+  readonly cooked = new Map<string, number>();
   /** 升级之后的各项数值（鱼护、鱼塘、菜地、小馆……） */
   stats: UpgradeStats;
   /** 喵记小馆：活鱼缸、菜单、口碑 */
@@ -268,8 +277,9 @@ export class GameState {
   }
 
   /** 小馆卖出一道菜（自己掌勺的）：收钱、记账 */
-  recordDish(amount: number, quality: number): void {
+  recordDish(amount: number, quality: number, recipeId?: string): void {
     this.earn(amount);
+    if (recipeId) this.cooked.set(recipeId, (this.cooked.get(recipeId) ?? 0) + 1);
     this.today.restaurantEarned += amount;
     this.today.guests++;
     const r = this.records;
@@ -313,6 +323,7 @@ export class GameState {
       this.clock.addMinutes(result.minutes);
       this.today.worms += result.worms;
       this.records.worms += result.worms;
+      if (result.action === 'sow') this.records.sown++;
       if (result.harvest) {
         this.today.harvested += result.harvest.count;
         this.records.harvested += result.harvest.count;
@@ -374,6 +385,7 @@ export class GameState {
   keep(fish: FishInstance, spotId: string, positionId: string): boolean {
     if (this.keepNetFull) return false;
     this.today.kept++;
+    this.records.kept++;
     this.keepNet.push({
       ...fish,
       day: this.clock.day,
@@ -442,6 +454,7 @@ export class GameState {
     const i = this.keepNet.findIndex((f) => f.uid === uid);
     if (i < 0 || this.isKoi(this.keepNet[i]!.speciesId)) return false;
     r.tank.push(...this.keepNet.splice(i, 1));
+    this.records.tanked++;
     return true;
   }
 

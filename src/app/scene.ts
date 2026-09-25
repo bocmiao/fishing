@@ -32,6 +32,11 @@ export abstract class Scene {
 
   constructor(protected readonly ctx: SceneContext) {}
 
+  /** 画面的种类：同一种画面可以有好几个（小溪和荷花湖都是 fishing），默认就是画面自己 */
+  get kind(): string {
+    return '';
+  }
+
   /** 进入画面：创建显示对象、生成纹理等 */
   abstract enter(): void | Promise<void>;
 

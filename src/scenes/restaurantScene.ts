@@ -11,7 +11,7 @@ import { Scene, type ViewSize } from '../app/scene';
 import type { Recipe } from '../sim/data/schema';
 import { fishPrice, formatWeight } from '../sim/fishing/catchRoll';
 import { CookingGame } from '../sim/restaurant/cooking';
-import { canCook, emptyReserved, reserve } from '../sim/restaurant/kitchen';
+import { canCook, emptyReserved, recipeIngredients, reserve } from '../sim/restaurant/kitchen';
 import {
   Service,
   type Guest,
@@ -235,7 +235,7 @@ export class RestaurantScene extends Scene {
       state.restaurant,
       this.pantry,
       this.rng.fork('service'),
-      (n, quality) => state.recordDish(n, quality),
+      (n, quality, recipeId) => state.recordDish(n, quality, recipeId),
       { tables: stats.tables, reputationBonus: stats.reputationBonus },
     );
     this.toast('开门营业！客人点了菜，点一下客人或者按空格开始做', 'good');
@@ -672,15 +672,6 @@ export class RestaurantScene extends Scene {
     } else {
       statusText = r.menu.length > 0 ? '可以开门了' : '先定好菜单再开门';
     }
-    const describe = (recipe: Recipe) => {
-      const parts: string[] = [];
-      if (recipe.fish) {
-        const names = recipe.fish.species.map((id) => data.speciesById.get(id)?.name ?? id);
-        parts.push(`${names.length > 0 ? names.join('或') : '随便什么鱼'} ×${recipe.fish.count}`);
-      }
-      for (const [id, n] of Object.entries(recipe.goods)) parts.push(`${state.itemName(id)} ×${n}`);
-      return parts.join(' + ');
-    };
     this.ctx.ui.set({
       restaurant: {
         status,
@@ -700,7 +691,7 @@ export class RestaurantScene extends Scene {
           id: recipe.id,
           name: recipe.name,
           note: recipe.note,
-          ingredients: describe(recipe),
+          ingredients: recipeIngredients(data, recipe),
           price: recipe.price,
           onMenu: r.menu.includes(recipe.id),
           servings: this.servings(recipe),

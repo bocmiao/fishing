@@ -414,6 +414,12 @@ export const RECORD_KEYS = [
   'helperNights',
   'totalEarned',
   'daysPlayed',
+  /** 放进鱼护的鱼（新手引导用） */
+  'kept',
+  /** 播下的种子 */
+  'sown',
+  /** 送进活鱼缸的鱼 */
+  'tanked',
 ] as const;
 export type RecordKey = (typeof RECORD_KEYS)[number];
 
@@ -435,6 +441,10 @@ export const AchievementConditionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('upgradeCount'), value: z.number().int().positive() }),
   /** 升级买了几成 */
   z.object({ type: z.literal('upgradeShare'), value: z.number().min(0).max(1) }),
+  /** 做过某件一次性的小事（去过某个地方、打开过笔记……），见 GameState.flags */
+  z.object({ type: z.literal('flag'), id: z.string() }),
+  /** 小馆菜单上挂了几道菜 */
+  z.object({ type: z.literal('menu'), value: z.number().int().positive() }),
 ]);
 export type AchievementCondition = z.infer<typeof AchievementConditionSchema>;
 
@@ -459,3 +469,27 @@ export const AchievementsSchema = z.object({
 });
 export type Achievements = z.infer<typeof AchievementsSchema>;
 export type Achievement = Achievements['achievements'][number];
+
+/** 新手引导：小满一步一步带着过第一天；外公笔记"玩法"页的说明也写在这里 */
+export const TutorialSchema = z.object({
+  /** 带路的人（显示在便条上） */
+  guide: z.string(),
+  steps: z.array(
+    z.object({
+      id: z.string(),
+      /** 这一步要做什么（一句话） */
+      title: z.string(),
+      /** 这一步开始时小满说的话 */
+      say: z.string(),
+      /** 怎么做：按画面给不同的说法（键是画面名），没写的画面用 default */
+      how: z.record(z.string(), z.string()).refine((h) => 'default' in h, '要有 default'),
+      /** 这些条件都满足了就算做到了（条件和成就共用） */
+      done: z.array(AchievementConditionSchema).min(1),
+    }),
+  ),
+  /** 做完最后一步时小满说的话 */
+  farewell: z.string(),
+  help: z.array(z.object({ title: z.string(), lines: z.array(z.string()) })),
+});
+export type Tutorial = z.infer<typeof TutorialSchema>;
+export type TutorialStep = Tutorial['steps'][number];

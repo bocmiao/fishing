@@ -1,3 +1,4 @@
+import type { GameData } from '../data/gameData';
 import type { Recipe } from '../data/schema';
 import type { Inventory } from '../inventory';
 import type { CaughtFish } from '../state';
@@ -20,6 +21,19 @@ export interface Reserved {
 
 export function emptyReserved(): Reserved {
   return { fish: new Set(), goods: new Map() };
+}
+
+/** 用料写成一句话，例如"鲫鱼 ×1 + 葱 ×1" */
+export function recipeIngredients(data: GameData, recipe: Recipe): string {
+  const parts: string[] = [];
+  if (recipe.fish) {
+    const names = recipe.fish.species.map((id) => data.speciesById.get(id)?.name ?? id);
+    parts.push(`${names.length > 0 ? names.join('或') : '随便什么鱼'} ×${recipe.fish.count}`);
+  }
+  for (const [id, n] of Object.entries(recipe.goods)) {
+    parts.push(`${data.itemNames.get(id) ?? id} ×${n}`);
+  }
+  return parts.join(' + ');
 }
 
 function fishFits(recipe: Recipe, f: CaughtFish): boolean {

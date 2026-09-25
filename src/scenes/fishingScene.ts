@@ -80,6 +80,10 @@ export interface FishingSceneOptions {
  * 进入参数只有"哪个钓点的哪个钓位"，方案 C 的行走地图也用同样的参数打开这里。
  */
 export class FishingScene extends Scene {
+  override get kind(): string {
+    return 'fishing';
+  }
+
   private rng!: Rng;
   private view!: ViewSize;
   private spot!: Spot;

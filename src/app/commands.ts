@@ -13,6 +13,10 @@ export type GameCommand =
   | { type: 'dismissSummary' }
   /** 打开外公笔记（图鉴和成就）：让 Game 把最新的内容填进界面 */
   | { type: 'openNotebook' }
+  /** 打开添置面板（新手引导要知道玩家看过没有） */
+  | { type: 'openUpgrades' }
+  /** 小满的便条：关掉 / 重新打开 */
+  | { type: 'tutorial'; show: boolean }
   /** 买一项升级（渔具、修缮老宅、装修小馆） */
   | { type: 'buyUpgrade'; upgradeId: string }
   | { type: 'selectBait'; baitId: string }
