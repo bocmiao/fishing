@@ -15,8 +15,13 @@ export interface LaunchParams {
   debug: boolean;
 }
 
-export function readLaunchParams(search = window.location.search): LaunchParams {
+export function readLaunchParams(
+  search = window.location.search,
+  hash = window.location.hash,
+): LaunchParams {
   const q = new URLSearchParams(search);
+  // 网页版只能用 #fishing 这样的锚点（拿不到网址参数）
+  const hashScene = /^#[a-z]+$/.test(hash) ? hash.slice(1) : null;
   const num = (key: string, fallback: number) => {
     const v = q.get(key);
     if (v === null || v === '') return fallback;
@@ -24,10 +29,17 @@ export function readLaunchParams(search = window.location.search): LaunchParams 
     return Number.isFinite(n) ? n : fallback;
   };
   return {
-    scene: q.get('scene') ?? 'pond',
-    seed: num('seed', Math.floor(Math.random() * 1e9)),
+    scene: q.get('scene') ?? hashScene ?? 'pond',
+    seed: num('seed', randomSeed()),
     warmup: num('warmup', 8),
     shot: q.get('shot') === '1',
     debug: q.get('debug') === '1',
   };
+}
+
+/** 没指定种子时随机取一个（只在启动时用一次，游戏里的随机数都来自 Rng） */
+function randomSeed(): number {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return buf[0]! % 1_000_000_000;
 }

@@ -14,7 +14,8 @@
     "shot": "node tools/screenshot.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"tools/**/*.mjs\"",
     "check": "tsc --noEmit && vitest run && prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",
-    "balance": "vitest run --config tools/balance/vitest.config.ts"
+    "balance": "vitest run --config tools/balance/vitest.config.ts",
+    "build:web": "tsc --noEmit && vite build --mode artifact && node tools/make-web-page.mjs"
   },
   "dependencies": {
     "@fontsource/noto-serif-sc": "^5.3.0",

@@ -21,11 +21,18 @@ body {
 
 #game canvas {
   display: block;
+  /* 触屏上按住蓄力、拖动瞄准时不要滚动或缩放页面 */
+  touch-action: none;
 }
 
+/* 宽高和缩放由 src/app/uiScale.ts 按窗口大小设置 */
 #ui {
   position: fixed;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  transform-origin: 0 0;
   pointer-events: none;
   font-family: var(--font-serif);
   color: var(--ink);
@@ -44,11 +51,11 @@ body {
   inset: 0;
 }
 
-.ui-root > *:not(.watch-hint) {
+.ui-root > *:not(.watch-exit) {
   transition: opacity 0.6s ease;
 }
 
-.ui-root.is-watching > *:not(.watch-hint) {
+.ui-root.is-watching > *:not(.watch-exit) {
   opacity: 0;
   pointer-events: none !important;
 }
@@ -626,28 +633,71 @@ kbd {
 
 /* ---------------------------------------------------------------- 观鱼模式 */
 
-.watch-hint {
+.watch-button {
+  position: absolute;
+  right: 32px;
+  bottom: 30px;
+  padding: 9px 18px;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
+.watch-exit {
   position: absolute;
   bottom: 24px;
   right: 32px;
+  padding: 6px 12px;
   font-size: 12px;
   letter-spacing: 0.12em;
-  color: rgba(245, 235, 219, 0.7);
+  color: rgba(245, 235, 219, 0.8) !important;
+  background: rgba(15, 35, 29, 0.35);
+  border: 1px solid rgba(245, 235, 219, 0.25);
+  border-radius: 999px;
   opacity: 0;
+  pointer-events: none !important;
   transition: opacity 0.6s ease;
 }
 
-.ui-root.is-watching .watch-hint {
-  opacity: 1;
-  animation: fade-away 4s ease forwards;
+/* 观鱼时只留一个很淡的退出按钮（触屏没有 H 键） */
+.ui-root.is-watching .watch-exit {
+  pointer-events: auto !important;
+  animation: fade-dim 4s ease forwards;
 }
 
-@keyframes fade-away {
+@keyframes fade-dim {
   0%,
   60% {
     opacity: 1;
   }
   100% {
-    opacity: 0;
+    opacity: 0.35;
   }
+}
+
+/* ---------------------------------------------------------------- 窄屏（手机） */
+
+.rotate-hint {
+  display: none;
+}
+
+#ui.is-portrait .rotate-hint {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 150px;
+  transform: translateX(-50%);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: rgba(245, 235, 219, 0.75);
+  white-space: nowrap;
+}
+
+#ui.is-narrow .tabs {
+  top: 104px;
+}
+
+#ui.is-narrow .meter {
+  left: 50%;
+  bottom: 110px;
+  transform: translateX(-50%);
 }

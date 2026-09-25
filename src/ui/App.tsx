@@ -19,12 +19,15 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
     <div className={`ui-root${watch ? ' is-watching' : ''}`}>
       <Plaque store={store} />
       <NavButton scene={scene} send={send} />
-      {scene === 'pond' && <PondHud store={store} />}
+      {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
       <ToastView store={store} />
       {debug && <DebugPanel store={store} />}
       {tuningOpen && <TuningPanel store={store} send={send} />}
-      <div className="watch-hint">按 H 退出观鱼模式</div>
+      <button className="watch-exit" onClick={() => send({ type: 'toggleWatch' })}>
+        退出观鱼（H）
+      </button>
+      <div className="rotate-hint">把手机横过来玩更舒服</div>
     </div>
   );
 }
@@ -63,9 +66,16 @@ function NavButton({ scene, send }: { scene: string; send: Send }) {
   return null;
 }
 
-function PondHud({ store }: { store: Store<UiState> }) {
+function PondHud({ store, send }: { store: Store<UiState>; send: Send }) {
   const hint = useUi(store, (s) => s.hint);
-  return <>{hint && <div className="hint card">{hint}</div>}</>;
+  return (
+    <>
+      {hint && <div className="hint card">{hint}</div>}
+      <button className="watch-button card" onClick={() => send({ type: 'toggleWatch' })}>
+        观鱼
+      </button>
+    </>
+  );
 }
 
 // ---------------------------------------------------------------- 钓鱼

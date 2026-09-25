@@ -61,6 +61,7 @@ export class PondScene extends Scene {
   private uiTimer = 0;
   private catAlpha = 1;
   private readonly onKey = (e: KeyboardEvent) => this.handleKey(e);
+  private unsubscribe: (() => void) | null = null;
 
   constructor(ctx: SceneContext) {
     super(ctx);
@@ -119,6 +120,9 @@ export class PondScene extends Scene {
       this.feed(p.x, p.y);
     });
     window.addEventListener('keydown', this.onKey);
+    this.unsubscribe = this.ctx.commands.on((cmd) => {
+      if (cmd.type === 'toggleWatch') this.toggleWatch();
+    });
 
     this.ctx.ui.set({
       scene: 'pond',
@@ -161,9 +165,13 @@ export class PondScene extends Scene {
     this.cat.toss();
   }
 
+  private toggleWatch(): void {
+    this.ctx.ui.set({ watchMode: !this.ctx.ui.get().watchMode });
+  }
+
   private handleKey(e: KeyboardEvent): void {
     if (e.key === 'h' || e.key === 'H') {
-      this.ctx.ui.set({ watchMode: !this.ctx.ui.get().watchMode });
+      this.toggleWatch();
     } else if (e.key === 'F3') {
       this.ctx.ui.set({ debug: !this.ctx.ui.get().debug });
       e.preventDefault();
@@ -259,6 +267,8 @@ export class PondScene extends Scene {
 
   override exit(): void {
     window.removeEventListener('keydown', this.onKey);
+    this.unsubscribe?.();
+    this.ctx.ui.set({ watchMode: false });
     // 先销毁显示对象，再销毁它们用到的纹理
     this.water.setBed(Texture.EMPTY);
     super.exit();

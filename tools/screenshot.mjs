@@ -5,6 +5,7 @@
  * 用法：
  *   npm run shot -- --scene pond --seed 7 --warmup 12
  *   npm run shot -- --actions "shot:before;click:900,500;step:2;shot:after"
+ *   npm run shot -- --url http://127.0.0.1:5173/ ...   # 用已经在运行的 npm run dev
  *
  * 动作（用分号分隔）：
  *   step:秒数        按固定步长推进游戏
@@ -36,15 +37,21 @@ const { values } = parseArgs({
     out: { type: 'string', default: 'screenshots' },
     actions: { type: 'string', default: '' },
     query: { type: 'string', default: '' },
+    // 已经在运行的开发服务器地址（例如 npm run dev 的 http://127.0.0.1:5173/）；不填就自己起一个
+    url: { type: 'string', default: '' },
   },
 });
 
 const outDir = resolve(values.out);
 mkdirSync(outDir, { recursive: true });
 
-const server = await createServer({ logLevel: 'error', server: { port: 5174, strictPort: false } });
-await server.listen();
-const base = server.resolvedUrls?.local?.[0] ?? 'http://127.0.0.1:5174/';
+let server = null;
+let base = values.url;
+if (!base) {
+  server = await createServer({ logLevel: 'error', server: { port: 5174, strictPort: false } });
+  await server.listen();
+  base = server.resolvedUrls?.local?.[0] ?? 'http://127.0.0.1:5174/';
+}
 
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
@@ -152,6 +159,6 @@ try {
     for (const p of problems.slice(0, 40)) console.log(p);
   }
   await browser.close();
-  await server.close();
+  await server?.close();
 }
 process.exit(exitCode);

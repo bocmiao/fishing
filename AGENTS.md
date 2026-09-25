@@ -13,11 +13,12 @@ npm install          # 安装依赖
 npm run dev          # 开发服务器 http://127.0.0.1:5173/
 npm run typecheck    # 类型检查
 npm test             # 单元测试（Vitest）
-npm run build        # 生产构建
+npm run build        # 生产构建（桌面版，字体打包在内）
+npm run build:web    # 网页版：输出 dist-web/page.html + assets，用来发布成可以在浏览器里直接玩的页面
 npm run shot -- --scene pond --actions "click:900,500;step:2;shot:feed"   # 无头浏览器截图，说明见 tools/screenshot.mjs
 ```
 
-网址参数：`?scene=pond|fishing&seed=7&warmup=10&debug=1`（`shot=1` 为截图模式，由截图脚本使用）。
+网址参数：`?scene=pond|fishing&seed=7&warmup=10&debug=1`（`shot=1` 为截图模式，由截图脚本使用）；网页版拿不到网址参数，用 `#fishing` 锚点直接进钓鱼画面。
 游戏内：F3 显示调试信息；钓鱼画面里 F2 打开调参面板（遛鱼参数、跳时间、换天气）。
 
 其他工具：
