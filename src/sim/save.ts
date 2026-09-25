@@ -62,6 +62,7 @@ const StatsSchema = z.object({
   restaurantEarned: z.number().default(0),
   bestFishSpecies: z.string().default(''),
   bestFishKg: z.number().default(0),
+  achievements: z.array(z.string()).default([]),
 });
 
 const RestaurantSaveSchema = z.object({
@@ -99,6 +100,10 @@ export const SaveSchemaV1 = z.object({
   today: StatsSchema.prefault({}),
   /** 买过的升级（后来加的字段，老存档没有就是空的） */
   upgrades: z.array(z.string()).default([]),
+  /** 一辈子的累计记录；不认识的键丢掉，缺的补 0 */
+  records: z.record(z.string(), z.number()).default({}),
+  /** 达成的成就：[id, 第几天] */
+  achievements: z.array(z.tuple([z.string(), z.number()])).default([]),
   restaurant: RestaurantSaveSchema.prefault({}),
 });
 export type SaveData = z.infer<typeof SaveSchemaV1>;
@@ -123,6 +128,8 @@ export function serialize(state: GameState): SaveData {
     place: state.place,
     today: { ...state.today },
     upgrades: [...state.upgrades],
+    records: { ...state.records },
+    achievements: [...state.achievements.entries()],
     restaurant: {
       ...state.restaurant,
       tank: state.restaurant.tank.map((f) => ({ ...f })),
@@ -169,7 +176,13 @@ export function restore(data: GameData, raw: unknown): GameState {
   if (data.items.baits.some((b) => b.id === save.baitId)) state.baitId = save.baitId;
   // rodId / lineId 还存着（兼容），但以买过的升级为准，applyUpgrades 已经设好了
   if (data.placeById.has(save.place)) state.place = save.place;
-  state.today = { ...save.today };
+  state.today = { ...save.today, achievements: [...save.today.achievements] };
+  for (const key of Object.keys(state.records) as (keyof typeof state.records)[]) {
+    state.records[key] = save.records[key] ?? 0;
+  }
+  for (const [id, day] of save.achievements) {
+    if (data.achievementById.has(id)) state.achievements.set(id, day);
+  }
 
   const r = save.restaurant;
   Object.assign(state.restaurant, {

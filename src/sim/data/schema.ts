@@ -393,3 +393,69 @@ export const UpgradesSchema = z.object({
 });
 export type Upgrades = z.infer<typeof UpgradesSchema>;
 export type Upgrade = Upgrades['upgrades'][number];
+
+/** 一辈子的累计记录（成就用） */
+export const RECORD_KEYS = [
+  'fishCaught',
+  'trophies',
+  'nightFish',
+  'koiCaught',
+  'released',
+  'pondReleased',
+  'soldFish',
+  'worms',
+  'harvested',
+  'crafted',
+  'dishes',
+  'perfectDishes',
+  'guests',
+  'restaurantEarned',
+  'bestNight',
+  'helperNights',
+  'totalEarned',
+  'daysPlayed',
+] as const;
+export type RecordKey = (typeof RECORD_KEYS)[number];
+
+export const AchievementConditionSchema = z.discriminatedUnion('type', [
+  /** 某项累计记录到了多少 */
+  z.object({ type: z.literal('record'), key: z.enum(RECORD_KEYS), value: z.number().positive() }),
+  /** 钓到过某种鱼 */
+  z.object({ type: z.literal('species'), id: z.string() }),
+  /** 某种鱼钓到过这么重的 */
+  z.object({ type: z.literal('weight'), id: z.string(), kg: z.number().positive() }),
+  /** 某个钓点的鱼全钓到过 */
+  z.object({ type: z.literal('spotComplete'), id: z.string() }),
+  /** 外公笔记里的鱼钓到过几成 */
+  z.object({ type: z.literal('journalShare'), value: z.number().min(0).max(1) }),
+  z.object({ type: z.literal('pond'), value: z.number().int().positive() }),
+  z.object({ type: z.literal('reputation'), value: z.number().positive() }),
+  z.object({ type: z.literal('money'), value: z.number().positive() }),
+  z.object({ type: z.literal('upgrade'), id: z.string() }),
+  z.object({ type: z.literal('upgradeCount'), value: z.number().int().positive() }),
+  /** 升级买了几成 */
+  z.object({ type: z.literal('upgradeShare'), value: z.number().min(0).max(1) }),
+]);
+export type AchievementCondition = z.infer<typeof AchievementConditionSchema>;
+
+export const AchievementsSchema = z.object({
+  categories: z.array(z.object({ id: z.string(), name: z.string() })),
+  achievements: z.array(
+    z.object({
+      id: z.string(),
+      category: z.string(),
+      name: z.string(),
+      desc: z.string(),
+      condition: AchievementConditionSchema,
+      /** 小小的奖励：一点钱、几样东西 */
+      reward: z
+        .object({
+          money: z.number().min(0).optional(),
+          items: z.record(z.string(), z.number().int().positive()).optional(),
+        })
+        .optional(),
+    }),
+  ),
+});
+export type Achievements = z.infer<typeof AchievementsSchema>;
+export type Achievement = Achievements['achievements'][number];

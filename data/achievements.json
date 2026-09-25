@@ -1,0 +1,270 @@
+{
+  "categories": [
+    { "id": "fishing", "name": "钓鱼" },
+    { "id": "pond", "name": "方塘" },
+    { "id": "farm", "name": "菜地" },
+    { "id": "restaurant", "name": "小馆" },
+    { "id": "home", "name": "家业" }
+  ],
+  "achievements": [
+    {
+      "id": "first_fish",
+      "category": "fishing",
+      "name": "第一条鱼",
+      "desc": "钓上第一条鱼。",
+      "condition": { "type": "record", "key": "fishCaught", "value": 1 },
+      "reward": { "money": 20 }
+    },
+    {
+      "id": "fish_10",
+      "category": "fishing",
+      "name": "小有收获",
+      "desc": "一共钓上 10 条鱼。",
+      "condition": { "type": "record", "key": "fishCaught", "value": 10 },
+      "reward": { "items": { "worm": 10 } }
+    },
+    {
+      "id": "fish_50",
+      "category": "fishing",
+      "name": "钓鱼人",
+      "desc": "一共钓上 50 条鱼。",
+      "condition": { "type": "record", "key": "fishCaught", "value": 50 }
+    },
+    {
+      "id": "fish_200",
+      "category": "fishing",
+      "name": "老钓手",
+      "desc": "一共钓上 200 条鱼。外公要是看见，会竖大拇指。",
+      "condition": { "type": "record", "key": "fishCaught", "value": 200 }
+    },
+    {
+      "id": "trophy",
+      "category": "fishing",
+      "name": "大家伙",
+      "desc": "钓上一条特别大的鱼。",
+      "condition": { "type": "record", "key": "trophies", "value": 1 },
+      "reward": { "money": 50 }
+    },
+    {
+      "id": "night_fish",
+      "category": "fishing",
+      "name": "夜钓",
+      "desc": "在夜里钓上一条鱼。",
+      "condition": { "type": "record", "key": "nightFish", "value": 1 }
+    },
+    {
+      "id": "eel",
+      "category": "fishing",
+      "name": "石缝里的黄鳝",
+      "desc": "钓上一条黄鳝。",
+      "condition": { "type": "species", "id": "swamp_eel" }
+    },
+    {
+      "id": "big_crucian",
+      "category": "fishing",
+      "name": "二斤的鲫鱼",
+      "desc": "钓上一条 1 公斤以上的鲫鱼。外公笔记里说这可遇不可求。",
+      "condition": { "type": "weight", "id": "crucian", "kg": 1 }
+    },
+    {
+      "id": "big_carp",
+      "category": "fishing",
+      "name": "湖里的大鲤鱼",
+      "desc": "钓上一条 3 公斤以上的鲤鱼。",
+      "condition": { "type": "weight", "id": "common_carp", "kg": 3 }
+    },
+    {
+      "id": "creek_all",
+      "category": "fishing",
+      "name": "屋后小溪",
+      "desc": "屋后小溪里的鱼，每一种都钓到过。",
+      "condition": { "type": "spotComplete", "id": "creek" },
+      "reward": { "money": 100 }
+    },
+    {
+      "id": "lake_all",
+      "category": "fishing",
+      "name": "荷花湖",
+      "desc": "荷花湖里的鱼，每一种都钓到过。",
+      "condition": { "type": "spotComplete", "id": "lotus_lake" },
+      "reward": { "money": 200 }
+    },
+    {
+      "id": "journal_half",
+      "category": "fishing",
+      "name": "笔记写了一半",
+      "desc": "外公笔记里的鱼，钓到过一半。",
+      "condition": { "type": "journalShare", "value": 0.5 }
+    },
+    {
+      "id": "journal_full",
+      "category": "fishing",
+      "name": "笔记写满了",
+      "desc": "外公笔记里的鱼，全都钓到过。",
+      "condition": { "type": "journalShare", "value": 1 }
+    },
+    {
+      "id": "koi",
+      "category": "pond",
+      "name": "湖里的锦鲤",
+      "desc": "在荷花湖钓到一条被放生的锦鲤。",
+      "condition": { "type": "record", "key": "koiCaught", "value": 1 }
+    },
+    {
+      "id": "pond_first",
+      "category": "pond",
+      "name": "塘里来了新朋友",
+      "desc": "第一次把钓到的鱼放进方塘。",
+      "condition": { "type": "record", "key": "pondReleased", "value": 1 }
+    },
+    {
+      "id": "pond_8",
+      "category": "pond",
+      "name": "热闹起来了",
+      "desc": "方塘里养着 8 条鱼。",
+      "condition": { "type": "pond", "value": 8 }
+    },
+    {
+      "id": "pond_20",
+      "category": "pond",
+      "name": "半亩方塘",
+      "desc": "方塘里养着 20 条鱼。",
+      "condition": { "type": "pond", "value": 20 }
+    },
+    {
+      "id": "release_10",
+      "category": "pond",
+      "name": "快快长大",
+      "desc": "一共放生 10 条鱼。",
+      "condition": { "type": "record", "key": "released", "value": 10 }
+    },
+    {
+      "id": "worm_first",
+      "category": "farm",
+      "name": "蚯蚓！",
+      "desc": "在菜地里挖到第一条蚯蚓。",
+      "condition": { "type": "record", "key": "worms", "value": 1 }
+    },
+    {
+      "id": "worm_100",
+      "category": "farm",
+      "name": "蚯蚓大王",
+      "desc": "一共挖到 100 条蚯蚓。",
+      "condition": { "type": "record", "key": "worms", "value": 100 }
+    },
+    {
+      "id": "harvest_first",
+      "category": "farm",
+      "name": "第一茬",
+      "desc": "收获第一次作物。",
+      "condition": { "type": "record", "key": "harvested", "value": 1 },
+      "reward": { "items": { "seed:corn": 2 } }
+    },
+    {
+      "id": "harvest_100",
+      "category": "farm",
+      "name": "丰收",
+      "desc": "一共收获 100 份作物。",
+      "condition": { "type": "record", "key": "harvested", "value": 100 }
+    },
+    {
+      "id": "craft_first",
+      "category": "farm",
+      "name": "石磨转起来了",
+      "desc": "第一次用外公的石磨和灶台做东西。",
+      "condition": { "type": "record", "key": "crafted", "value": 1 }
+    },
+    {
+      "id": "dish_first",
+      "category": "restaurant",
+      "name": "开张大吉",
+      "desc": "喵记小馆卖出第一道菜。",
+      "condition": { "type": "record", "key": "dishes", "value": 1 },
+      "reward": { "money": 50 }
+    },
+    {
+      "id": "dish_50",
+      "category": "restaurant",
+      "name": "小有名气",
+      "desc": "亲手做了 50 道菜。",
+      "condition": { "type": "record", "key": "dishes", "value": 50 }
+    },
+    {
+      "id": "perfect_10",
+      "category": "restaurant",
+      "name": "大厨",
+      "desc": "做出 10 道特别好的菜（做菜小游戏接近满分）。",
+      "condition": { "type": "record", "key": "perfectDishes", "value": 10 }
+    },
+    {
+      "id": "night_300",
+      "category": "restaurant",
+      "name": "生意兴隆",
+      "desc": "一晚上收入 ¥300 以上。",
+      "condition": { "type": "record", "key": "bestNight", "value": 300 }
+    },
+    {
+      "id": "rep_10",
+      "category": "restaurant",
+      "name": "村长来吃饭",
+      "desc": "小馆口碑到 10。",
+      "condition": { "type": "reputation", "value": 10 }
+    },
+    {
+      "id": "rep_25",
+      "category": "restaurant",
+      "name": "美食博主来了",
+      "desc": "小馆口碑到 25。",
+      "condition": { "type": "reputation", "value": 25 }
+    },
+    {
+      "id": "helper",
+      "category": "restaurant",
+      "name": "小满代班",
+      "desc": "让小满代了一次班。",
+      "condition": { "type": "record", "key": "helperNights", "value": 1 }
+    },
+    {
+      "id": "upgrade_first",
+      "category": "home",
+      "name": "添置",
+      "desc": "买下第一件升级。",
+      "condition": { "type": "upgradeCount", "value": 1 }
+    },
+    {
+      "id": "road",
+      "category": "home",
+      "name": "路修好了",
+      "desc": "捐钱修通去荷花湖的小路。",
+      "condition": { "type": "upgrade", "id": "road_lake" }
+    },
+    {
+      "id": "upgrades_all",
+      "category": "home",
+      "name": "样样齐全",
+      "desc": "所有升级都添置齐了。",
+      "condition": { "type": "upgradeShare", "value": 1 }
+    },
+    {
+      "id": "money_5000",
+      "category": "home",
+      "name": "小有积蓄",
+      "desc": "身上攒下 ¥5000。",
+      "condition": { "type": "money", "value": 5000 }
+    },
+    {
+      "id": "days_14",
+      "category": "home",
+      "name": "住下来了",
+      "desc": "在柳溪村住满一季（14 天）。",
+      "condition": { "type": "record", "key": "daysPlayed", "value": 14 }
+    },
+    {
+      "id": "days_56",
+      "category": "home",
+      "name": "一年",
+      "desc": "在柳溪村住满一年（56 天）。",
+      "condition": { "type": "record", "key": "daysPlayed", "value": 56 }
+    }
+  ]
+}

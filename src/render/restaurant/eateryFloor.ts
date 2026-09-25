@@ -51,7 +51,7 @@ void main() {
     wall = mix(wall, WOOD_SHADOW, (1.0 - smoothstep(0.0, 3.0, min(board, 96.0 - board))) * 0.7);
     // 两扇纸窗，透出一点暖光
     for (int i = 0; i < 2; i++) {
-      float cx = uSize.x * (i == 0 ? 0.36 : 0.6);
+      float cx = uSize.x * (i == 0 ? 0.3 : 0.5);
       vec2 d = abs(px - vec2(cx, uWallH * 0.48)) - vec2(120.0, uWallH * 0.3);
       float win = 1.0 - smoothstep(-1.0, 1.0, max(d.x, d.y));
       // 窗格

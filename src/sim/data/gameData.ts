@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import achievementsJson from '../../../data/achievements.json';
 import cropsJson from '../../../data/crops.json';
 import farmJson from '../../../data/farm.json';
 import fishJson from '../../../data/fish.json';
@@ -11,6 +12,7 @@ import restaurantJson from '../../../data/restaurant.json';
 import spotsJson from '../../../data/spots.json';
 import upgradesJson from '../../../data/upgrades.json';
 import {
+  AchievementsSchema,
   CropSchema,
   FarmSchema,
   FishSpeciesSchema,
@@ -22,6 +24,8 @@ import {
   RestaurantSchema,
   SpotSchema,
   UpgradesSchema,
+  type Achievement,
+  type Achievements,
   type Area,
   type Craft,
   type Crop,
@@ -57,6 +61,9 @@ export interface GameData {
   upgrades: Upgrade[];
   upgradeById: Map<string, Upgrade>;
   upgradeGroups: Upgrades['groups'];
+  achievements: Achievement[];
+  achievementById: Map<string, Achievement>;
+  achievementCategories: Achievements['categories'];
   /** 库存里每种东西的名字（饵料、货物、种子） */
   itemNames: Map<string, string>;
   /** 杂货铺的价格 */
@@ -83,6 +90,7 @@ export interface RawGameData {
   recipes: unknown;
   restaurant: unknown;
   upgrades: unknown;
+  achievements: unknown;
 }
 
 /** 校验并整理配置表；出错时抛出带路径的错误信息 */
@@ -98,6 +106,7 @@ export function parseGameData(raw: RawGameData): GameData {
   const recipes = z.object({ recipes: z.array(RecipeSchema) }).parse(raw.recipes).recipes;
   const restaurant = RestaurantSchema.parse(raw.restaurant);
   const upgrades = UpgradesSchema.parse(raw.upgrades);
+  const achievements = AchievementsSchema.parse(raw.achievements);
 
   const speciesById = unique(species, '鱼种');
   const spotById = unique(spots, '钓点');
@@ -105,6 +114,7 @@ export function parseGameData(raw: RawGameData): GameData {
   const placeById = unique(places.places, '地点');
   const recipeById = unique(recipes, '菜谱');
   const upgradeById = unique(upgrades.upgrades, '升级');
+  const achievementById = unique(achievements.achievements, '成就');
 
   const itemNames = new Map<string, string>();
   const itemPrices = new Map<string, number>();
@@ -176,6 +186,20 @@ export function parseGameData(raw: RawGameData): GameData {
       throw new Error(`升级 ${u.id} 解锁的地点 ${u.effect.unlockPlace} 不存在`);
     }
   }
+  const categoryIds = new Set(achievements.categories.map((c) => c.id));
+  for (const a of achievements.achievements) {
+    const c = a.condition;
+    const bad = (what: string) => new Error(`成就 ${a.id} ${what}`);
+    if (!categoryIds.has(a.category)) throw bad(`的分类 ${a.category} 不存在`);
+    if ((c.type === 'species' || c.type === 'weight') && !speciesById.has(c.id)) {
+      throw bad(`用到的鱼 ${c.id} 不存在`);
+    }
+    if (c.type === 'spotComplete' && !spotById.has(c.id)) throw bad(`用到的钓点 ${c.id} 不存在`);
+    if (c.type === 'upgrade' && !upgradeById.has(c.id)) throw bad(`用到的升级 ${c.id} 不存在`);
+    for (const id of Object.keys(a.reward?.items ?? {})) {
+      if (!itemNames.has(id)) throw bad(`奖励的 ${id} 不存在`);
+    }
+  }
   for (const g of restaurant.guests) {
     for (const id of g.likes) {
       if (!recipeById.has(id)) throw new Error(`客人 ${g.id} 爱吃的 ${id} 不在菜谱里`);
@@ -210,6 +234,9 @@ export function parseGameData(raw: RawGameData): GameData {
     upgrades: upgrades.upgrades,
     upgradeById,
     upgradeGroups: upgrades.groups,
+    achievements: achievements.achievements,
+    achievementById,
+    achievementCategories: achievements.categories,
     itemNames,
     itemPrices,
     shopItems,
@@ -241,5 +268,6 @@ export function getGameData(): GameData {
     recipes: recipesJson,
     restaurant: restaurantJson,
     upgrades: upgradesJson,
+    achievements: achievementsJson,
   }));
 }

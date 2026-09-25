@@ -1,7 +1,12 @@
 import { Application, Container } from 'pixi.js';
 import { getGameData } from '../sim/data/gameData';
 import { Rng } from '../sim/rng/rng';
+import { checkAchievements, progressOf, rewardText } from '../sim/achievements';
+import type { Achievement } from '../sim/data/schema';
 import { formatWeight } from '../sim/fishing/catchRoll';
+import { hashString } from '../sim/rng/rng';
+import { renderFishImage } from '../render/fish/fishImage';
+import { fishLook } from '../render/fish/pondFishLook';
 import { restore, serialize } from '../sim/save';
 import { WEATHER_NAMES, GameState, type DaySummary } from '../sim/state';
 import { SEASON_NAMES } from '../sim/time/clock';
@@ -34,6 +39,13 @@ export class Game {
   private saveTimer = 0;
   private summaryId = 0;
   private toastId = 100_000;
+  /** 等着弹出的成就横幅（一个一个弹） */
+  private readonly achievementQueue: Achievement[] = [];
+  private achievementTimer = 0;
+  private achievementCheck = 0;
+  private achievementToastId = 0;
+  /** 外公笔记里鱼的图，按鱼种缓存 */
+  private readonly speciesImages = new Map<string, string>();
   private helperRng!: Rng;
   /** 所有画面都放在这里，按窗口缩放 */
   private readonly world = new Container();
@@ -102,6 +114,7 @@ export class Game {
       else if (cmd.type === 'sleep') this.state.sleep();
       else if (cmd.type === 'newGame') this.newGame();
       else if (cmd.type === 'buyUpgrade') this.buyUpgrade(cmd.upgradeId);
+      else if (cmd.type === 'openNotebook') this.pushNotebook();
       else if (cmd.type === 'dismissSummary') {
         this.state.clock.paused = false;
         this.ui.set({ daySummary: null });
@@ -273,6 +286,34 @@ export class Game {
       if (this.sceneName !== state.data.homePlace) void this.goto(state.data.homePlace);
       else this.save();
     }
+    // 成就：隔一会儿查一次，新达成的排队弹横幅
+    this.achievementCheck -= dt;
+    if (this.achievementCheck <= 0) {
+      this.achievementCheck = 0.25;
+      const fresh = checkAchievements(state);
+      if (fresh.length > 0) {
+        this.achievementQueue.push(...fresh);
+        this.save();
+        if (this.ui.get().notebook) this.pushNotebook();
+      }
+    }
+    this.achievementTimer -= dt;
+    if (this.achievementTimer <= 0) {
+      const next = this.achievementQueue.shift();
+      if (next) {
+        this.achievementTimer = 4;
+        this.ui.set({
+          achievementToast: {
+            id: ++this.achievementToastId,
+            name: next.name,
+            desc: next.desc,
+            reward: rewardText(state, next),
+          },
+        });
+      } else if (this.ui.get().achievementToast) {
+        this.ui.set({ achievementToast: null });
+      }
+    }
     // 到了打烊时间，今天还没营业：小满代班
     const helper = state.runHelperIfDue(this.helperRng);
     if (helper && helper.dishes.length > 0) {
@@ -309,6 +350,10 @@ export class Game {
     }
     if (s.earned > 0 || s.spent > 0) lines.push(`进账 ¥${s.earned}，花销 ¥${s.spent}`);
     if (summary.ripened > 0) lines.push(`夜里有 ${summary.ripened} 块地的作物熟了`);
+    if (s.achievements.length > 0) {
+      const names = s.achievements.map((id) => this.state.data.achievementById.get(id)?.name ?? id);
+      lines.push(`达成成就：${names.join('、')}`);
+    }
     if (lines.length === 0) lines.push('安安静静的一天');
     this.ui.set({
       daySummary: {
@@ -331,6 +376,69 @@ export class Game {
     return state.money >= next.price
       ? `够买「${next.name}」了（按 U 添置）`
       : `离「${next.name}」还差 ¥${next.price - state.money}`;
+  }
+
+  /** 外公笔记：每种鱼一页（没钓到过的只有外公的线索），成就按分类列出进度 */
+  private pushNotebook(): void {
+    const state = this.state;
+    const data = state.data;
+    const rarity: Record<string, string> = {
+      common: '常见',
+      uncommon: '少见',
+      rare: '稀有',
+      legendary: '传说',
+    };
+    const species = data.species.map((sp) => {
+      const entry = state.journal.get(sp.id);
+      let image = this.speciesImages.get(sp.id);
+      if (!image) {
+        image = renderFishImage(fishLook(sp, hashString(`journal:${sp.id}`)), 0.6);
+        this.speciesImages.set(sp.id, image);
+      }
+      return {
+        id: sp.id,
+        name: sp.name,
+        caught: !!entry,
+        count: entry?.caught ?? 0,
+        best: entry ? formatWeight(entry.bestWeightKg) : '',
+        note: sp.note,
+        rarity: rarity[sp.rarity] ?? '',
+        spot: sp.spots.map((id) => data.spotById.get(id)?.name ?? id).join('、'),
+        image,
+      };
+    });
+    const groups = data.achievementCategories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      items: data.achievements
+        .filter((a) => a.category === c.id)
+        .map((a) => {
+          const day = state.achievements.get(a.id);
+          const p = progressOf(state, a.condition);
+          const done = day !== undefined;
+          const counted = p.target > 1;
+          const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+          return {
+            id: a.id,
+            name: a.name,
+            desc: a.desc,
+            done,
+            day: done ? day + 1 : 0,
+            progress: done ? 1 : Math.min(1, p.current / p.target),
+            progressText:
+              !done && counted ? `${fmt(Math.min(p.current, p.target))}/${fmt(p.target)}` : '',
+            reward: rewardText(state, a),
+          };
+        }),
+    }));
+    this.ui.set({
+      notebook: {
+        species,
+        groups,
+        done: state.achievements.size,
+        total: data.achievements.length,
+      },
+    });
   }
 
   /** 地图上各个地方离这里多远 */

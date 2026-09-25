@@ -1,3 +1,4 @@
+import { emptyRecords, type Records } from './achievements';
 import { seedId, type GameData } from './data/gameData';
 import type { Weather } from './data/schema';
 import { fishPrice, type FishInstance } from './fishing/catchRoll';
@@ -97,6 +98,8 @@ export interface DayStats {
   /** 今天钓到的最大的一条（按重量）；没钓到为空 */
   bestFishSpecies: string;
   bestFishKg: number;
+  /** 今天达成的成就 */
+  achievements: string[];
 }
 
 /** 一天结束时给玩家看的小结 */
@@ -129,6 +132,7 @@ function emptyStats(): DayStats {
     restaurantEarned: 0,
     bestFishSpecies: '',
     bestFishKg: 0,
+    achievements: [],
   };
 }
 
@@ -152,6 +156,10 @@ export class GameState {
   readonly plots: Plot[] = [];
   /** 买过的升级 */
   readonly upgrades = new Set<string>();
+  /** 一辈子的累计记录（成就用） */
+  records: Records = emptyRecords();
+  /** 达成的成就：id → 第几天达成的 */
+  readonly achievements = new Map<string, number>();
   /** 升级之后的各项数值（鱼护、鱼塘、菜地、小馆……） */
   stats: UpgradeStats;
   /** 喵记小馆：活鱼缸、菜单、口碑 */
@@ -256,6 +264,29 @@ export class GameState {
   earn(amount: number): void {
     this.money += amount;
     this.today.earned += amount;
+    this.records.totalEarned += amount;
+  }
+
+  /** 小馆卖出一道菜（自己掌勺的）：收钱、记账 */
+  recordDish(amount: number, quality: number): void {
+    this.earn(amount);
+    this.today.restaurantEarned += amount;
+    this.today.guests++;
+    const r = this.records;
+    r.dishes++;
+    r.guests++;
+    r.restaurantEarned += amount;
+    if (quality >= 0.9) r.perfectDishes++;
+  }
+
+  /** 打烊时记下这一晚赚了多少（最好的一晚） */
+  recordNight(earned: number): void {
+    this.records.bestNight = Math.max(this.records.bestNight, earned);
+  }
+
+  /** 上鱼卡片上点了放生 */
+  recordRelease(): void {
+    this.records.released++;
   }
 
   /** 花钱；不够就不花，返回 false */
@@ -281,7 +312,11 @@ export class GameState {
     if (result.ok) {
       this.clock.addMinutes(result.minutes);
       this.today.worms += result.worms;
-      if (result.harvest) this.today.harvested += result.harvest.count;
+      this.records.worms += result.worms;
+      if (result.harvest) {
+        this.today.harvested += result.harvest.count;
+        this.records.harvested += result.harvest.count;
+      }
     }
     return result;
   }
@@ -292,6 +327,7 @@ export class GameState {
     if (!craft || !this.inventory.takeAll(craft.inputs)) return false;
     for (const [id, n] of Object.entries(craft.outputs)) this.inventory.add(id, n);
     this.clock.addMinutes(craft.minutes);
+    this.records.crafted++;
     return true;
   }
 
@@ -310,6 +346,11 @@ export class GameState {
   /** 记下一次上鱼（不管放生还是留下，笔记都会记） */
   recordCatch(fish: FishInstance): CatchRecordResult {
     this.today.caught++;
+    const r = this.records;
+    r.fishCaught++;
+    if (fish.trophy) r.trophies++;
+    if (this.clock.period === 'night') r.nightFish++;
+    if (this.isKoi(fish.speciesId)) r.koiCaught++;
     if (fish.weightKg > this.today.bestFishKg) {
       this.today.bestFishKg = fish.weightKg;
       this.today.bestFishSpecies = fish.speciesId;
@@ -368,6 +409,7 @@ export class GameState {
       day: this.clock.day,
     };
     this.pond.push(fish);
+    this.records.pondReleased++;
     return fish;
   }
 
@@ -376,6 +418,7 @@ export class GameState {
     const i = this.keepNet.findIndex((f) => f.uid === uid);
     if (i < 0) return false;
     this.keepNet.splice(i, 1);
+    this.records.released++;
     return true;
   }
 
@@ -412,6 +455,7 @@ export class GameState {
       const species = this.data.speciesById.get(fish.speciesId);
       const price = species ? fishPrice(species, fish) : 0;
       this.earn(price);
+      this.records.soldFish++;
       return price;
     }
     return 0;
@@ -450,6 +494,7 @@ export class GameState {
     const result = runHelper(r, { inventory: this.inventory, tank: r.tank }, this.data, rng);
     this.earn(result.earned);
     this.today.restaurantEarned += result.earned;
+    if (result.dishes.length > 0) this.records.helperNights++;
     return result;
   }
 
@@ -467,6 +512,7 @@ export class GameState {
       rained,
     );
     this.clock.sleep();
+    this.records.daysPlayed++;
     this.weather = rollWeather(this.clock.season, this.rng);
     this.place = this.data.homePlace;
     const summary: DaySummary = {

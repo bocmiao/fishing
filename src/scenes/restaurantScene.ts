@@ -179,7 +179,7 @@ export class RestaurantScene extends Scene {
     );
     this.furniture.addChild(this.tank.node);
     this.tank.sync(this.ctx.state.restaurant.tank);
-    this.board = new MenuBoard(w - 470, 14, this.ctx.state.stats.menuSize);
+    this.board = new MenuBoard(w - 720, 14, this.ctx.state.stats.menuSize);
     this.furniture.addChild(this.board.node);
     this.lanterns = [0.3, 0.55, 0.85].map((f, i) => new Lantern(w * f, WALL_H + 4, i * 1.7));
     for (const l of this.lanterns) this.furniture.addChild(l.node);
@@ -235,11 +235,7 @@ export class RestaurantScene extends Scene {
       state.restaurant,
       this.pantry,
       this.rng.fork('service'),
-      (n) => {
-        state.earn(n);
-        state.today.restaurantEarned += n;
-        state.today.guests++;
-      },
+      (n, quality) => state.recordDish(n, quality),
       { tables: stats.tables, reputationBonus: stats.reputationBonus },
     );
     this.toast('开门营业！客人点了菜，点一下客人或者按空格开始做', 'good');
@@ -288,6 +284,7 @@ export class RestaurantScene extends Scene {
         }
         case 'closed': {
           const s = e.summary;
+          state.recordNight(s.earned);
           this.closedText = `今晚接待了 ${s.guests} 位客人，收入 ¥${s.earned}，口碑 +${s.reputation.toFixed(1)}`;
           if (this.cooking) this.cooking = null;
           this.ctx.ui.set({ cooking: null, nightReport: this.nightReport(s) });

@@ -216,6 +216,47 @@ export interface UpgradeGroupUi {
   items: UpgradeUi[];
 }
 
+/** 成就达成时弹出的横幅 */
+export interface AchievementToastUi {
+  id: number;
+  name: string;
+  desc: string;
+  reward: string;
+}
+
+/** 外公笔记：一种鱼的一页 */
+export interface SpeciesPageUi {
+  id: string;
+  name: string;
+  caught: boolean;
+  count: number;
+  best: string;
+  note: string;
+  rarity: string;
+  spot: string;
+  /** 鱼的图（data URL）；没钓到过的画成剪影 */
+  image: string;
+}
+
+export interface AchievementUi {
+  id: string;
+  name: string;
+  desc: string;
+  done: boolean;
+  /** 第几天达成的（从 1 开始），没达成为 0 */
+  day: number;
+  progress: number;
+  progressText: string;
+  reward: string;
+}
+
+export interface NotebookUi {
+  species: SpeciesPageUi[];
+  groups: { id: string; name: string; items: AchievementUi[] }[];
+  done: number;
+  total: number;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -239,6 +280,8 @@ export interface UiState {
   places: PlaceUi[];
   daySummary: DaySummaryUi | null;
   upgrades: UpgradeGroupUi[];
+  achievementToast: AchievementToastUi | null;
+  notebook: NotebookUi | null;
   /** 胡须感应：附近有少见的鱼 */
   sense: boolean;
 
@@ -286,6 +329,8 @@ export const initialUiState: UiState = {
   places: [],
   daySummary: null,
   upgrades: [],
+  achievementToast: null,
+  notebook: null,
   sense: false,
   pond: null,
   farm: null,

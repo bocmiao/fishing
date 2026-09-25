@@ -28,6 +28,8 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       <Plaque store={store} />
       <MapButton store={store} send={send} />
       <UpgradeButton store={store} send={send} />
+      <NotebookButton store={store} send={send} />
+      <AchievementBanner store={store} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
       {scene === 'farm' && <FarmHud store={store} send={send} />}
@@ -156,6 +158,124 @@ function UpgradePanel({
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AchievementBanner({ store }: { store: Store<UiState> }) {
+  const a = useUi(store, (s) => s.achievementToast);
+  if (!a) return null;
+  return (
+    <div key={a.id} className="achievement-banner card">
+      <div className="achievement-label">成就达成</div>
+      <div className="achievement-name">{a.name}</div>
+      <div className="achievement-desc">{a.desc}</div>
+      {a.reward && <div className="achievement-reward">奖励：{a.reward}</div>}
+    </div>
+  );
+}
+
+function NotebookButton({ store, send }: { store: Store<UiState>; send: Send }) {
+  const [open, setOpen] = useState(false);
+  const show = (on: boolean) => {
+    if (on) send({ type: 'openNotebook' });
+    setOpen(on);
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyJ') {
+        setOpen((o) => {
+          if (!o) send({ type: 'openNotebook' });
+          return !o;
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [send]);
+  return (
+    <>
+      <button className="nav-button notebook-button card" onClick={() => show(true)}>
+        笔记<kbd>J</kbd>
+      </button>
+      {open && <NotebookPanel store={store} onClose={() => show(false)} />}
+    </>
+  );
+}
+
+/** 外公笔记：图鉴（每种鱼一页）和成就 */
+function NotebookPanel({ store, onClose }: { store: Store<UiState>; onClose: () => void }) {
+  const nb = useUi(store, (s) => s.notebook);
+  const [tab, setTab] = useState<'fish' | 'achievements'>('fish');
+  if (!nb) return null;
+  const caught = nb.species.filter((s) => s.caught).length;
+  return (
+    <div className="map-backdrop" onClick={onClose}>
+      <div className="notebook card" onClick={(e) => e.stopPropagation()}>
+        <div className="map-head">
+          <span className="map-title">外公笔记</span>
+          <div className="notebook-tabs">
+            <button className={tab === 'fish' ? 'is-active' : ''} onClick={() => setTab('fish')}>
+              图鉴 {caught}/{nb.species.length}
+            </button>
+            <button
+              className={tab === 'achievements' ? 'is-active' : ''}
+              onClick={() => setTab('achievements')}
+            >
+              成就 {nb.done}/{nb.total}
+            </button>
+          </div>
+          <span className="map-clock" />
+          <button className="map-close" onClick={onClose} aria-label="关上">
+            ×
+          </button>
+        </div>
+        {tab === 'fish' ? (
+          <div className="species-grid">
+            {nb.species.map((sp) => (
+              <div key={sp.id} className={`species-page${sp.caught ? '' : ' is-unknown'}`}>
+                <img src={sp.image} alt={sp.name} />
+                <div className="species-name">
+                  {sp.name}
+                  <span>{sp.rarity}</span>
+                </div>
+                <div className="species-stats">
+                  {sp.caught ? `钓到 ${sp.count} 条 · 最重 ${sp.best}` : `还没钓到 · ${sp.spot}`}
+                </div>
+                <div className="species-note">「{sp.note}」</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="achievement-groups">
+            {nb.groups.map((g) => (
+              <div key={g.id} className="achievement-group">
+                <div className="upgrade-group-title">{g.name}</div>
+                <ul>
+                  {g.items.map((a) => (
+                    <li key={a.id} className={`achievement${a.done ? ' is-done' : ''}`}>
+                      <span className="achievement-mark">{a.done ? '★' : '☆'}</span>
+                      <div className="upgrade-text">
+                        <b>{a.name}</b>
+                        <span className="upgrade-note">{a.desc}</span>
+                        {!a.done && a.progressText && (
+                          <div className="achievement-progress">
+                            <div style={{ width: `${Math.round(a.progress * 100)}%` }} />
+                            <span>{a.progressText}</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="achievement-side">
+                        {a.done ? `第 ${a.day} 天` : a.reward ? `奖励 ${a.reward}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

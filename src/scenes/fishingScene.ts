@@ -844,6 +844,7 @@ export class FishingScene extends Scene {
       const tip = state.keepNet.length === 1 ? '，回方塘可以放进塘里养' : '';
       this.toast(`放进鱼护（${state.keepNet.length}/${state.keepNetCapacity}）${tip}`, 'good');
     } else {
+      state.recordRelease();
       this.toast(keep ? '鱼护满了，只好放生' : '放生了，快快长大吧', 'info');
       this.ripples.add(this.catX + 40, this.waterBottom - 10, 0.8, 1.6, 3);
     }
