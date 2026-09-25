@@ -17,7 +17,7 @@
  *   shot:名字        截图保存为 <out>/<名字>.png
  *   perf:帧数        测量逻辑更新的平均耗时（毫秒 / 帧）
  *   eval:代码        在页面里执行一段 JS 并打印结果（代码里不能有分号）
- *   evalfile:文件@参数  执行文件里的函数表达式，例如 tools/bots/fight.js@30
+ *   evalfile:文件@参数  执行文件里的函数表达式，例如 tools/bots/fight.js@30（参数可以是数字或文字）
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -139,9 +139,12 @@ try {
       // 文件内容是一个函数表达式，例如 (seconds) => { ... }；@ 后面是参数
       const [file, param] = arg.split('@');
       const code = readFileSync(resolve(file), 'utf8').trim().replace(/;\s*$/, '');
-      const result = await page.evaluate(
-        `(${code})(${param === undefined ? '' : JSON.stringify(Number(param))})`,
-      );
+      // 参数是数字就按数字传，否则按字符串传
+      const value =
+        param === undefined
+          ? ''
+          : JSON.stringify(Number.isNaN(Number(param)) ? param : Number(param));
+      const result = await page.evaluate(`(${code})(${value})`);
       console.log(`evalfile ${file}: ${JSON.stringify(result)}`);
     } else if (name === 'eval') {
       const result = await page.evaluate(arg);

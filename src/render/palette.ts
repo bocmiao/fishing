@@ -22,6 +22,18 @@ export const PALETTE = {
   bamboo: 0xd2a24c,
   cream: 0xede4d0,
   pink: 0xe8a596,
+  // 田地与作物
+  grass: 0x6d8a58,
+  grassLight: 0x8aa46c,
+  grassDark: 0x4f6b44,
+  soilDry: 0x9c7a56,
+  soil: 0x7a5a3e,
+  soilWet: 0x5a4030,
+  sprout: 0x9cc06a,
+  leaf: 0x6e9a4e,
+  leafDark: 0x4f7a3a,
+  wheat: 0xd9b76a,
+  worm: 0xd98c7a,
 } as const;
 
 export type Rgb = readonly [number, number, number];

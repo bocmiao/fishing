@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { GameCommand } from '../app/commands';
 import type { Store } from '../app/store';
-import type { CatchCardUi, FishingUi, PondUi, UiState } from './uiState';
+import type { CatchCardUi, FarmUi, FishingUi, PondUi, UiState } from './uiState';
 
 type Send = (cmd: GameCommand) => void;
 
@@ -21,6 +21,7 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       <MapButton store={store} send={send} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
       {scene === 'fishing' && <FishingHud store={store} send={send} />}
+      {scene === 'farm' && <FarmHud store={store} send={send} />}
       <ToastView store={store} />
       {debug && <DebugPanel store={store} />}
       {tuningOpen && <TuningPanel store={store} send={send} />}
@@ -267,6 +268,78 @@ function KeepNetPanel({ pond, send }: { pond: PondUi; send: Send }) {
           全部放进塘里
         </button>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- 菜地
+
+function FarmHud({ store, send }: { store: Store<UiState>; send: Send }) {
+  const farm = useUi(store, (s) => s.farm);
+  const [open, setOpen] = useState(false);
+  if (!farm) return null;
+  return (
+    <>
+      <div className="hint card">{farm.hint}</div>
+      <div className="baits card tools">
+        <div className="baits-label">手里</div>
+        {farm.tools.map((t, i) => (
+          <button
+            key={t.id}
+            className={`bait${t.id === farm.toolId ? ' is-active' : ''}${t.count === 0 || !t.inSeason ? ' is-empty' : ''}`}
+            title={t.inSeason ? t.note : `${t.note}（这个季节种不了）`}
+            disabled={t.count === 0}
+            onClick={() => send({ type: 'selectTool', toolId: t.id })}
+          >
+            <span className="bait-key">{i + 1}</span>
+            {t.name}
+            {t.count >= 0 && <span className="bait-count">{t.count}</span>}
+          </button>
+        ))}
+      </div>
+      <button className="keepnet-button card craft-button" onClick={() => setOpen(!open)}>
+        石磨 · 灶台<span>{open ? '收起' : '打开'}</span>
+      </button>
+      {open && <CraftPanel farm={farm} send={send} />}
+    </>
+  );
+}
+
+function CraftPanel({ farm, send }: { farm: FarmUi; send: Send }) {
+  return (
+    <div className="keepnet-panel card craft-panel">
+      <div className="keepnet-panel-title">
+        石磨 · 灶台<span>外公留下的家什</span>
+      </div>
+      <ul>
+        {farm.crafts.map((c) => (
+          <li key={c.id} title={c.note}>
+            <div className="keepnet-fish">
+              <b>{c.name}</b>
+              <span>
+                {c.inputs} → {c.outputs} · {c.minutes} 分钟
+              </span>
+            </div>
+            <button
+              className="primary"
+              disabled={!c.can}
+              onClick={() => send({ type: 'craft', craftId: c.id })}
+            >
+              做
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="keepnet-panel-title stock-title">库存</div>
+      <div className="stock">
+        {farm.stock.length === 0 && <span className="stock-empty">什么也没有</span>}
+        {farm.stock.map((s) => (
+          <span key={s.id} className="stock-chip">
+            {s.name}
+            <b>{s.count}</b>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

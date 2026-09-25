@@ -22,7 +22,7 @@ export class Rain {
   intensity = 0;
 
   constructor(
-    private bounds: Rect,
+    public bounds: Rect,
     private readonly rng: Rng,
   ) {
     this.node.addChild(this.g);

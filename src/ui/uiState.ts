@@ -72,6 +72,41 @@ export interface DaySummaryUi {
   tomorrow: string;
 }
 
+/** 菜地画面：手里能拿的东西（空手、各种种子、堆肥） */
+export interface FarmToolUi {
+  id: string;
+  name: string;
+  /** -1 表示不计数（空手） */
+  count: number;
+  note: string;
+  /** 这个季节能不能种 */
+  inSeason: boolean;
+}
+
+export interface CraftUi {
+  id: string;
+  name: string;
+  note: string;
+  inputs: string;
+  outputs: string;
+  minutes: number;
+  can: boolean;
+}
+
+export interface StockUi {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export interface FarmUi {
+  toolId: string;
+  tools: FarmToolUi[];
+  crafts: CraftUi[];
+  stock: StockUi[];
+  hint: string;
+}
+
 export interface Toast {
   id: number;
   text: string;
@@ -98,6 +133,7 @@ export interface UiState {
   sense: boolean;
 
   pond: PondUi | null;
+  farm: FarmUi | null;
   fishing: FishingUi | null;
   fightActive: boolean;
   tension: number;
@@ -138,6 +174,7 @@ export const initialUiState: UiState = {
   daySummary: null,
   sense: false,
   pond: null,
+  farm: null,
   fishing: null,
   fightActive: false,
   tension: 0,

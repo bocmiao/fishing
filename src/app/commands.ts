@@ -15,6 +15,10 @@ export type GameCommand =
   | { type: 'selectPosition'; positionId: string }
   | { type: 'catchDecision'; keep: boolean }
   | { type: 'toggleWatch' }
+  /** 菜地：手里换一样东西（hand、compost、seed:作物id） */
+  | { type: 'selectTool'; toolId: string }
+  /** 在家里加工（磨面粉、和面饵、点豆腐） */
+  | { type: 'craft'; craftId: string }
   /** 鱼护里的鱼放进自家鱼塘（all = 能放的全放） */
   | { type: 'releaseToPond'; uid: number | 'all' }
   /** 鱼护里的鱼放生 */

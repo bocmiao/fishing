@@ -1,4 +1,5 @@
 import type { Scene, SceneContext } from '../app/scene';
+import { FarmScene } from './farmScene';
 import { FishingScene } from './fishingScene';
 import { PondScene } from './pondScene';
 
@@ -6,6 +7,7 @@ import { PondScene } from './pondScene';
 const SCENES: Record<string, (ctx: SceneContext) => Scene> = {
   pond: (ctx) => new PondScene(ctx),
   fishing: (ctx) => new FishingScene(ctx, { spotId: 'creek' }),
+  farm: (ctx) => new FarmScene(ctx),
 };
 
 export function createScene(name: string, ctx: SceneContext): Scene {
