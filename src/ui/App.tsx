@@ -31,7 +31,8 @@ export function App({ store, send }: { store: Store<UiState>; send: Send }) {
       <NotebookButton store={store} send={send} />
       <AchievementBanner store={store} />
       {scene === 'pond' && <PondHud store={store} send={send} />}
-      {scene === 'fishing' && <FishingHud store={store} send={send} />}
+      {/* 小溪和荷花湖都是钓鱼画面（画面名不同），有钓鱼数据就显示 */}
+      <FishingHud store={store} send={send} />
       {scene === 'farm' && <FarmHud store={store} send={send} />}
       {scene === 'restaurant' && <RestaurantHud store={store} send={send} />}
       <ToastView store={store} />
